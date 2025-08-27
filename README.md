@@ -280,6 +280,6 @@ For support and questions:
 [![GitHub stars](https://img.shields.io/github/stars/speedy4all/AfterburnerControl?style=social)](https://github.com/speedy4all/AfterburnerControl/stargazers)
 [![GitHub forks](https://img.shields.io/github/forks/speedy4all/AfterburnerControl?style=social)](https://github.com/speedy4all/AfterburnerControl/network/members)
 [![GitHub issues](https://img.shields.io/github/issues/speedy4all/AfterburnerControl)](https://github.com/speedy4all/AfterburnerControl/issues)
-[![GitHub license](https://img.shields.io/github/license/speedy4all/AfterburnerControl)](https://github.com/speedy4all/AfterburnerControl/blob/main/LICENSE)
+[![GitHub license](https://img.shields.io/github/license/speedy4all/AfterburnerControl)](https://github.com/speedy4all/AfterburnerControl/blob/master/LICENSE)
 
 </div>
