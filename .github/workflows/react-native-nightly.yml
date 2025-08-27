@@ -49,6 +49,24 @@ jobs:
           echo "Available Android SDK tools:"
           ls -la $ANDROID_HOME/cmdline-tools/latest/bin/
 
+      - name: Make Gradle wrapper executable
+        working-directory: ./AfterburnerControl/android
+        run: |
+          echo "Checking Android directory structure..."
+          ls -la
+          echo ""
+          echo "Checking Gradle wrapper file..."
+          ls -la gradlew
+          echo ""
+          echo "Making Gradle wrapper executable..."
+          chmod +x gradlew
+          echo ""
+          echo "Verifying permissions..."
+          ls -la gradlew
+          echo ""
+          echo "Testing Gradle wrapper..."
+          ./gradlew --version
+
       - name: Build Android APK
         working-directory: ./AfterburnerControl
         env:
@@ -137,12 +155,25 @@ jobs:
         run: |
           pod install --repo-update
 
+      - name: List iOS schemes
+        working-directory: ./AfterburnerControl/ios
+        env:
+          DEVELOPER_DIR: /Applications/Xcode_16.1.app/Contents/Developer
+        run: |
+          echo "Available schemes:"
+          xcodebuild -list -workspace AfterburnerControl.xcworkspace
+          echo ""
+          echo "Workspace structure:"
+          ls -la
+
       - name: Build iOS
         working-directory: ./AfterburnerControl
         env:
           DEVELOPER_DIR: /Applications/Xcode_16.1.app/Contents/Developer
         run: |
-          npx react-native run-ios --configuration Release --simulator="iPhone 14"
+          cd ios
+          xcodebuild -workspace AfterburnerControl.xcworkspace -scheme AfterburnerControl -configuration Release -destination 'platform=iOS Simulator,name=iPhone 14' -derivedDataPath build
+          cd ..
 
       - name: Upload iOS build
         uses: actions/upload-artifact@v4
