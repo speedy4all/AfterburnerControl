@@ -21,7 +21,7 @@
 // Device name
 #define DEVICE_NAME "ABurner"
 
-class BLEService {
+class AfterburnerBLEService {
 private:
   NimBLEServer* pServer;
   NimBLEService* pService;
@@ -42,14 +42,12 @@ private:
   unsigned long lastStatusUpdate;
   
 public:
-  BLEService(SettingsManager* settings);
+  AfterburnerBLEService(SettingsManager* settings);
   void begin();
   void updateStatus(float throttle, uint8_t mode);
   bool isConnected();
   
-private:
-  void createService();
-  void setupCallbacks();
+  // Make callback methods public so callback classes can access them
   void handleModeWrite(NimBLECharacteristic* pCharacteristic);
   void handleStartColorWrite(NimBLECharacteristic* pCharacteristic);
   void handleEndColorWrite(NimBLECharacteristic* pCharacteristic);
@@ -58,6 +56,11 @@ private:
   void handleNumLedsWrite(NimBLECharacteristic* pCharacteristic);
   void handleAbThresholdWrite(NimBLECharacteristic* pCharacteristic);
   void handleSavePresetWrite(NimBLECharacteristic* pCharacteristic);
+  
+private:
+  void createService();
+  void setupCallbacks();
+  void updateCharacteristicValues();
   uint16_t bytesToUint16(const uint8_t* data);
   void uint16ToBytes(uint16_t value, uint8_t* data);
 };

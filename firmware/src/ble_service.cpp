@@ -1,7 +1,88 @@
 #include "ble_service.h"
 #include <ArduinoJson.h>
 
-BLEService::BLEService(SettingsManager* settings) {
+// Callback classes for BLE characteristics
+class ModeCharacteristicCallbacks : public NimBLECharacteristicCallbacks {
+private:
+  AfterburnerBLEService* bleService;
+public:
+  ModeCharacteristicCallbacks(AfterburnerBLEService* service) : bleService(service) {}
+  void onWrite(NimBLECharacteristic* pCharacteristic) {
+    bleService->handleModeWrite(pCharacteristic);
+  }
+};
+
+class StartColorCharacteristicCallbacks : public NimBLECharacteristicCallbacks {
+private:
+  AfterburnerBLEService* bleService;
+public:
+  StartColorCharacteristicCallbacks(AfterburnerBLEService* service) : bleService(service) {}
+  void onWrite(NimBLECharacteristic* pCharacteristic) {
+    bleService->handleStartColorWrite(pCharacteristic);
+  }
+};
+
+class EndColorCharacteristicCallbacks : public NimBLECharacteristicCallbacks {
+private:
+  AfterburnerBLEService* bleService;
+public:
+  EndColorCharacteristicCallbacks(AfterburnerBLEService* service) : bleService(service) {}
+  void onWrite(NimBLECharacteristic* pCharacteristic) {
+    bleService->handleEndColorWrite(pCharacteristic);
+  }
+};
+
+class SpeedMsCharacteristicCallbacks : public NimBLECharacteristicCallbacks {
+private:
+  AfterburnerBLEService* bleService;
+public:
+  SpeedMsCharacteristicCallbacks(AfterburnerBLEService* service) : bleService(service) {}
+  void onWrite(NimBLECharacteristic* pCharacteristic) {
+    bleService->handleSpeedMsWrite(pCharacteristic);
+  }
+};
+
+class BrightnessCharacteristicCallbacks : public NimBLECharacteristicCallbacks {
+private:
+  AfterburnerBLEService* bleService;
+public:
+  BrightnessCharacteristicCallbacks(AfterburnerBLEService* service) : bleService(service) {}
+  void onWrite(NimBLECharacteristic* pCharacteristic) {
+    bleService->handleBrightnessWrite(pCharacteristic);
+  }
+};
+
+class NumLedsCharacteristicCallbacks : public NimBLECharacteristicCallbacks {
+private:
+  AfterburnerBLEService* bleService;
+public:
+  NumLedsCharacteristicCallbacks(AfterburnerBLEService* service) : bleService(service) {}
+  void onWrite(NimBLECharacteristic* pCharacteristic) {
+    bleService->handleNumLedsWrite(pCharacteristic);
+  }
+};
+
+class AbThresholdCharacteristicCallbacks : public NimBLECharacteristicCallbacks {
+private:
+  AfterburnerBLEService* bleService;
+public:
+  AbThresholdCharacteristicCallbacks(AfterburnerBLEService* service) : bleService(service) {}
+  void onWrite(NimBLECharacteristic* pCharacteristic) {
+    bleService->handleAbThresholdWrite(pCharacteristic);
+  }
+};
+
+class SavePresetCharacteristicCallbacks : public NimBLECharacteristicCallbacks {
+private:
+  AfterburnerBLEService* bleService;
+public:
+  SavePresetCharacteristicCallbacks(AfterburnerBLEService* service) : bleService(service) {}
+  void onWrite(NimBLECharacteristic* pCharacteristic) {
+    bleService->handleSavePresetWrite(pCharacteristic);
+  }
+};
+
+AfterburnerBLEService::AfterburnerBLEService(SettingsManager* settings) {
   settingsManager = settings;
   pServer = nullptr;
   pService = nullptr;
@@ -19,7 +100,7 @@ BLEService::BLEService(SettingsManager* settings) {
   pStatusCharacteristic = nullptr;
 }
 
-void BLEService::begin() {
+void AfterburnerBLEService::begin() {
   // Initialize BLE device
   NimBLEDevice::init(DEVICE_NAME);
   NimBLEDevice::setPower(ESP_PWR_LVL_P7); // Medium power
@@ -41,7 +122,7 @@ void BLEService::begin() {
   Serial.println("BLE service started");
 }
 
-void BLEService::createService() {
+void AfterburnerBLEService::createService() {
   pService = pServer->createService(SERVICE_UUID);
   
   // Create characteristics
@@ -98,12 +179,32 @@ void BLEService::createService() {
     NIMBLE_PROPERTY::NOTIFY
   );
   
+  // Start the service
+  pService->start();
+  
+  // Setup callbacks
+  setupCallbacks();
+  
   // Set initial values
+  updateCharacteristicValues();
+}
+
+void AfterburnerBLEService::setupCallbacks() {
+  pModeCharacteristic->setCallbacks(new ModeCharacteristicCallbacks(this));
+  pStartColorCharacteristic->setCallbacks(new StartColorCharacteristicCallbacks(this));
+  pEndColorCharacteristic->setCallbacks(new EndColorCharacteristicCallbacks(this));
+  pSpeedMsCharacteristic->setCallbacks(new SpeedMsCharacteristicCallbacks(this));
+  pBrightnessCharacteristic->setCallbacks(new BrightnessCharacteristicCallbacks(this));
+  pNumLedsCharacteristic->setCallbacks(new NumLedsCharacteristicCallbacks(this));
+  pAbThresholdCharacteristic->setCallbacks(new AbThresholdCharacteristicCallbacks(this));
+  pSavePresetCharacteristic->setCallbacks(new SavePresetCharacteristicCallbacks(this));
+}
+
+void AfterburnerBLEService::updateCharacteristicValues() {
   AfterburnerSettings& settings = settingsManager->getSettings();
   
-  uint8_t modeValue = settings.mode;
-  pModeCharacteristic->setValue(&modeValue, 1);
-  
+  // Set initial values
+  pModeCharacteristic->setValue(&settings.mode, 1);
   pStartColorCharacteristic->setValue(settings.startColor, 3);
   pEndColorCharacteristic->setValue(settings.endColor, 3);
   
@@ -111,74 +212,16 @@ void BLEService::createService() {
   uint16ToBytes(settings.speedMs, speedBytes);
   pSpeedMsCharacteristic->setValue(speedBytes, 2);
   
-  uint8_t brightnessValue = settings.brightness;
-  pBrightnessCharacteristic->setValue(&brightnessValue, 1);
+  pBrightnessCharacteristic->setValue(&settings.brightness, 1);
   
   uint8_t numLedsBytes[2];
   uint16ToBytes(settings.numLeds, numLedsBytes);
   pNumLedsCharacteristic->setValue(numLedsBytes, 2);
   
-  uint8_t abThresholdValue = settings.abThreshold;
-  pAbThresholdCharacteristic->setValue(&abThresholdValue, 1);
-  
-  // Setup callbacks
-  setupCallbacks();
-  
-  // Start service
-  pService->start();
+  pAbThresholdCharacteristic->setValue(&settings.abThreshold, 1);
 }
 
-void BLEService::setupCallbacks() {
-  pModeCharacteristic->setCallbacks(new class : public NimBLECharacteristicCallbacks {
-    void onWrite(NimBLECharacteristic* pCharacteristic) {
-      handleModeWrite(pCharacteristic);
-    }
-  });
-  
-  pStartColorCharacteristic->setCallbacks(new class : public NimBLECharacteristicCallbacks {
-    void onWrite(NimBLECharacteristic* pCharacteristic) {
-      handleStartColorWrite(pCharacteristic);
-    }
-  });
-  
-  pEndColorCharacteristic->setCallbacks(new class : public NimBLECharacteristicCallbacks {
-    void onWrite(NimBLECharacteristic* pCharacteristic) {
-      handleEndColorWrite(pCharacteristic);
-    }
-  });
-  
-  pSpeedMsCharacteristic->setCallbacks(new class : public NimBLECharacteristicCallbacks {
-    void onWrite(NimBLECharacteristic* pCharacteristic) {
-      handleSpeedMsWrite(pCharacteristic);
-    }
-  });
-  
-  pBrightnessCharacteristic->setCallbacks(new class : public NimBLECharacteristicCallbacks {
-    void onWrite(NimBLECharacteristic* pCharacteristic) {
-      handleBrightnessWrite(pCharacteristic);
-    }
-  });
-  
-  pNumLedsCharacteristic->setCallbacks(new class : public NimBLECharacteristicCallbacks {
-    void onWrite(NimBLECharacteristic* pCharacteristic) {
-      handleNumLedsWrite(pCharacteristic);
-    }
-  });
-  
-  pAbThresholdCharacteristic->setCallbacks(new class : public NimBLECharacteristicCallbacks {
-    void onWrite(NimBLECharacteristic* pCharacteristic) {
-      handleAbThresholdWrite(pCharacteristic);
-    }
-  });
-  
-  pSavePresetCharacteristic->setCallbacks(new class : public NimBLECharacteristicCallbacks {
-    void onWrite(NimBLECharacteristic* pCharacteristic) {
-      handleSavePresetWrite(pCharacteristic);
-    }
-  });
-}
-
-void BLEService::updateStatus(float throttle, uint8_t mode) {
+void AfterburnerBLEService::updateStatus(float throttle, uint8_t mode) {
   // Send status notification every 200ms
   if (millis() - lastStatusUpdate > 200) {
     // Create JSON status
@@ -196,14 +239,14 @@ void BLEService::updateStatus(float throttle, uint8_t mode) {
   }
 }
 
-bool BLEService::isConnected() {
+bool AfterburnerBLEService::isConnected() {
   if (pServer) {
     return pServer->getConnectedCount() > 0;
   }
   return false;
 }
 
-void BLEService::handleModeWrite(NimBLECharacteristic* pCharacteristic) {
+void AfterburnerBLEService::handleModeWrite(NimBLECharacteristic* pCharacteristic) {
   std::string value = pCharacteristic->getValue();
   if (value.length() == 1) {
     uint8_t mode = value[0];
@@ -215,7 +258,7 @@ void BLEService::handleModeWrite(NimBLECharacteristic* pCharacteristic) {
   }
 }
 
-void BLEService::handleStartColorWrite(NimBLECharacteristic* pCharacteristic) {
+void AfterburnerBLEService::handleStartColorWrite(NimBLECharacteristic* pCharacteristic) {
   std::string value = pCharacteristic->getValue();
   if (value.length() == 3) {
     AfterburnerSettings& settings = settingsManager->getSettings();
@@ -226,7 +269,7 @@ void BLEService::handleStartColorWrite(NimBLECharacteristic* pCharacteristic) {
   }
 }
 
-void BLEService::handleEndColorWrite(NimBLECharacteristic* pCharacteristic) {
+void AfterburnerBLEService::handleEndColorWrite(NimBLECharacteristic* pCharacteristic) {
   std::string value = pCharacteristic->getValue();
   if (value.length() == 3) {
     AfterburnerSettings& settings = settingsManager->getSettings();
@@ -237,7 +280,7 @@ void BLEService::handleEndColorWrite(NimBLECharacteristic* pCharacteristic) {
   }
 }
 
-void BLEService::handleSpeedMsWrite(NimBLECharacteristic* pCharacteristic) {
+void AfterburnerBLEService::handleSpeedMsWrite(NimBLECharacteristic* pCharacteristic) {
   std::string value = pCharacteristic->getValue();
   if (value.length() == 2) {
     uint16_t speedMs = bytesToUint16((uint8_t*)value.c_str());
@@ -249,7 +292,7 @@ void BLEService::handleSpeedMsWrite(NimBLECharacteristic* pCharacteristic) {
   }
 }
 
-void BLEService::handleBrightnessWrite(NimBLECharacteristic* pCharacteristic) {
+void AfterburnerBLEService::handleBrightnessWrite(NimBLECharacteristic* pCharacteristic) {
   std::string value = pCharacteristic->getValue();
   if (value.length() == 1) {
     uint8_t brightness = value[0];
@@ -261,7 +304,7 @@ void BLEService::handleBrightnessWrite(NimBLECharacteristic* pCharacteristic) {
   }
 }
 
-void BLEService::handleNumLedsWrite(NimBLECharacteristic* pCharacteristic) {
+void AfterburnerBLEService::handleNumLedsWrite(NimBLECharacteristic* pCharacteristic) {
   std::string value = pCharacteristic->getValue();
   if (value.length() == 2) {
     uint16_t numLeds = bytesToUint16((uint8_t*)value.c_str());
@@ -273,7 +316,7 @@ void BLEService::handleNumLedsWrite(NimBLECharacteristic* pCharacteristic) {
   }
 }
 
-void BLEService::handleAbThresholdWrite(NimBLECharacteristic* pCharacteristic) {
+void AfterburnerBLEService::handleAbThresholdWrite(NimBLECharacteristic* pCharacteristic) {
   std::string value = pCharacteristic->getValue();
   if (value.length() == 1) {
     uint8_t threshold = value[0];
@@ -285,18 +328,18 @@ void BLEService::handleAbThresholdWrite(NimBLECharacteristic* pCharacteristic) {
   }
 }
 
-void BLEService::handleSavePresetWrite(NimBLECharacteristic* pCharacteristic) {
+void AfterburnerBLEService::handleSavePresetWrite(NimBLECharacteristic* pCharacteristic) {
   std::string value = pCharacteristic->getValue();
   if (value.length() == 1 && value[0] == 1) {
     settingsManager->saveSettings();
   }
 }
 
-uint16_t BLEService::bytesToUint16(const uint8_t* data) {
+uint16_t AfterburnerBLEService::bytesToUint16(const uint8_t* data) {
   return (uint16_t)data[0] | ((uint16_t)data[1] << 8);
 }
 
-void BLEService::uint16ToBytes(uint16_t value, uint8_t* data) {
+void AfterburnerBLEService::uint16ToBytes(uint16_t value, uint8_t* data) {
   data[0] = value & 0xFF;
   data[1] = (value >> 8) & 0xFF;
 }

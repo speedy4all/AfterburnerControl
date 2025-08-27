@@ -9,7 +9,7 @@
 SettingsManager settingsManager;
 ThrottleReader throttleReader;
 LEDEffects ledEffects;
-BLEService bleService(&settingsManager);
+AfterburnerBLEService bleService(&settingsManager);
 OLEDDisplay oledDisplay;
 
 // Demo mode flag (can be set via #define DEMO_MODE)
