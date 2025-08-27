@@ -144,13 +144,16 @@ jobs:
         run: |
           pod install --repo-update
 
-      - name: List iOS schemes
+      - name: List iOS schemes and simulators
         working-directory: ./AfterburnerControl/ios
         env:
           DEVELOPER_DIR: /Applications/Xcode_16.1.app/Contents/Developer
         run: |
           echo "Available schemes:"
           xcodebuild -list -workspace AfterburnerControl.xcworkspace
+          echo ""
+          echo "Available simulators:"
+          xcrun simctl list devices available | grep iPhone
           echo ""
           echo "Workspace structure:"
           ls -la
@@ -161,7 +164,11 @@ jobs:
           DEVELOPER_DIR: /Applications/Xcode_16.1.app/Contents/Developer
         run: |
           cd ios
-          xcodebuild -workspace AfterburnerControl.xcworkspace -scheme AfterburnerControl -configuration Release -destination 'platform=iOS Simulator,name=iPhone 14' -derivedDataPath build
+          echo "Attempting to build with iPhone 15 simulator..."
+          xcodebuild -workspace AfterburnerControl.xcworkspace -scheme AfterburnerControl -configuration Release -destination 'platform=iOS Simulator,name=iPhone 15' -derivedDataPath build || {
+            echo "iPhone 15 simulator not available, trying generic iOS Simulator..."
+            xcodebuild -workspace AfterburnerControl.xcworkspace -scheme AfterburnerControl -configuration Release -destination 'platform=iOS Simulator' -derivedDataPath build
+          }
           cd ..
 
       - name: Upload iOS build
