@@ -27,7 +27,7 @@ jobs:
       - name: Run firmware tests
         working-directory: ./firmware
         run: |
-          pio test
+          pio test -e native
 
   test-react-native:
     runs-on: ubuntu-latest
