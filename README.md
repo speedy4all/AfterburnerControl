@@ -2,7 +2,7 @@
 
 A complete LED afterburner effect system for RC models, featuring real-time throttle input, customizable LED effects, Bluetooth control, and OLED status display.
 
-![ESP32 C3 Afterburner](https://img.shields.io/badge/ESP32-C3%20Afterburner-Project-blue)
+![ESP32 C3 Afterburner](https://img.shields.io/badge/ESP32%20C3%20Afterburner-Project-blue)
 ![Platform](https://img.shields.io/badge/Platform-ESP32%20C3-green)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
