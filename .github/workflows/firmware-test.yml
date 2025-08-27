@@ -3,10 +3,16 @@ name: Firmware Testing
 on:
   push:
     branches: [master]
-    paths: ["firmware/**"]
+    paths:
+      - "firmware/platformio.ini"
+      - "firmware/src/**"
+      - "firmware/lib/**"
   pull_request:
     branches: [master]
-    paths: ["firmware/**"]
+    paths:
+      - "firmware/platformio.ini"
+      - "firmware/src/**"
+      - "firmware/lib/**"
 
 jobs:
   build-and-test:

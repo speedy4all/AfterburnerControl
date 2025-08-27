@@ -17,7 +17,7 @@ This directory contains the GitHub Actions workflows for the Afterburner project
 ### 2. **firmware-test.yml** - Firmware Testing
 
 - **Purpose**: Tests ESP32 firmware builds and validation
-- **Trigger**: Only when firmware files change (`firmware/**`)
+- **Trigger**: Only when firmware source files change
 - **What it does**:
   - Sets up PlatformIO environment
   - Builds normal firmware (`esp32dev`)
@@ -30,11 +30,32 @@ This directory contains the GitHub Actions workflows for the Afterburner project
 ### 3. **react-native-build.yml** - React Native Builds
 
 - **Purpose**: Builds React Native app for Android and iOS
-- **Trigger**: Only when React Native files change (`AfterburnerControl/**`)
+- **Trigger**: Only when React Native source files change
 - **What it does**:
   - Builds Android APK
   - Builds iOS app (macOS only)
   - Uploads build artifacts
+
+### 4. **react-native-nightly.yml** - Nightly React Native Builds
+
+- **Purpose**: Scheduled nightly builds of React Native app
+- **Trigger**: Every night at 2 AM UTC + manual dispatch
+- **What it does**:
+  - Builds Android APK and iOS app
+  - Creates detailed build reports
+  - Uploads artifacts with longer retention (30 days)
+  - Provides success/failure notifications
+
+### 5. **firmware-nightly.yml** - Nightly Firmware Builds
+
+- **Purpose**: Scheduled nightly builds of ESP32 firmware
+- **Trigger**: Every night at 3 AM UTC + manual dispatch
+- **What it does**:
+  - Builds normal and test firmware
+  - Analyzes firmware sizes
+  - Creates detailed build reports
+  - Uploads artifacts with longer retention (30 days)
+  - Provides success/failure notifications
 
 ## Workflow Optimization
 
@@ -49,20 +70,24 @@ This directory contains the GitHub Actions workflows for the Afterburner project
 - **Path-based triggers**: Workflows only run when relevant files change
 - **Caching**: PlatformIO dependencies are cached for faster builds
 - **Focused testing**: Each workflow has a specific purpose
+- **Scheduled builds**: Nightly builds reduce manual triggering
 
 ### ✅ **Better Organization**
 
 - **Firmware testing**: Handled by `firmware-test.yml`
 - **React Native testing**: Handled by `test.yml`
 - **React Native building**: Handled by `react-native-build.yml`
+- **Nightly builds**: Separate scheduled workflows for regular builds
 
 ## Workflow Triggers
 
-| Workflow                 | Trigger        | Path Filter             |
-| ------------------------ | -------------- | ----------------------- |
-| `test.yml`               | All pushes/PRs | None (runs always)      |
-| `firmware-test.yml`      | All pushes/PRs | `firmware/**`           |
-| `react-native-build.yml` | All pushes/PRs | `AfterburnerControl/**` |
+| Workflow                   | Trigger        | Path Filter                 | Schedule       |
+| -------------------------- | -------------- | --------------------------- | -------------- |
+| `test.yml`                 | All pushes/PRs | None (runs always)          | -              |
+| `firmware-test.yml`        | All pushes/PRs | `firmware/src/**`           | -              |
+| `react-native-build.yml`   | All pushes/PRs | `AfterburnerControl/src/**` | -              |
+| `react-native-nightly.yml` | Manual         | None                        | 2 AM UTC daily |
+| `firmware-nightly.yml`     | Manual         | None                        | 3 AM UTC daily |
 
 ## Benefits
 
@@ -118,6 +143,14 @@ This directory contains the GitHub Actions workflows for the Afterburner project
 
 - `android-apk`: Android APK files
 - `ios-build`: iOS build artifacts
+
+### Nightly Builds
+
+- `android-apk-nightly`: Nightly Android APK builds (30-day retention)
+- `ios-build-nightly`: Nightly iOS build artifacts (30-day retention)
+- `firmware-nightly-builds`: Nightly firmware builds (30-day retention)
+- `nightly-build-report`: React Native nightly build reports
+- `firmware-nightly-report`: Firmware nightly build reports
 
 ## Troubleshooting
 

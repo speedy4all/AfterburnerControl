@@ -1,23 +1,10 @@
-name: Build React Native App
+name: React Native Nightly Build
 
 on:
-  push:
-    branches: [master]
-    paths:
-      - "AfterburnerControl/package.json"
-      - "AfterburnerControl/package-lock.json"
-      - "AfterburnerControl/android/**"
-      - "AfterburnerControl/ios/**"
-      - "AfterburnerControl/src/**"
-  pull_request:
-    branches: [master]
-    paths:
-      - "AfterburnerControl/package.json"
-      - "AfterburnerControl/package-lock.json"
-      - "AfterburnerControl/android/**"
-      - "AfterburnerControl/ios/**"
-      - "AfterburnerControl/src/**"
-  workflow_dispatch:
+  schedule:
+    # Run every night at 2 AM UTC (adjust timezone as needed)
+    - cron: "0 2 * * *"
+  workflow_dispatch: # Allow manual triggering
 
 jobs:
   build-android:
@@ -75,8 +62,32 @@ jobs:
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
         with:
-          name: android-apk
+          name: android-apk-nightly
           path: AfterburnerControl/android/app/build/outputs/apk/release/
+          retention-days: 30 # Keep nightly builds longer
+
+      - name: Create build report
+        run: |
+          echo "📱 Nightly React Native Build Report" > nightly-build-report.md
+          echo "===================================" >> nightly-build-report.md
+          echo "" >> nightly-build-report.md
+          echo "## Build Date" >> nightly-build-report.md
+          echo "$(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> nightly-build-report.md
+          echo "" >> nightly-build-report.md
+          echo "## Android Build" >> nightly-build-report.md
+          echo "- ✅ APK built successfully" >> nightly-build-report.md
+          echo "- 📦 Artifact: android-apk-nightly" >> nightly-build-report.md
+          echo "" >> nightly-build-report.md
+          echo "## Next Steps" >> nightly-build-report.md
+          echo "1. Download the APK from artifacts" >> nightly-build-report.md
+          echo "2. Test on Android device" >> nightly-build-report.md
+          echo "3. Verify BLE functionality" >> nightly-build-report.md
+
+      - name: Upload build report
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-build-report
+          path: nightly-build-report.md
           retention-days: 7
 
   build-ios:
@@ -136,6 +147,31 @@ jobs:
       - name: Upload iOS build
         uses: actions/upload-artifact@v4
         with:
-          name: ios-build
+          name: ios-build-nightly
           path: AfterburnerControl/ios/build/
-          retention-days: 7
+          retention-days: 30 # Keep nightly builds longer
+
+  notify-success:
+    needs: [build-android, build-ios]
+    runs-on: ubuntu-latest
+    if: success()
+
+    steps:
+      - name: Notify build success
+        run: |
+          echo "🎉 Nightly React Native build completed successfully!"
+          echo "📱 Android APK: Available in artifacts (android-apk-nightly)"
+          echo "🍎 iOS Build: Available in artifacts (ios-build-nightly)"
+          echo "📋 Report: Available in artifacts (nightly-build-report)"
+
+  notify-failure:
+    needs: [build-android, build-ios]
+    runs-on: ubuntu-latest
+    if: failure()
+
+    steps:
+      - name: Notify build failure
+        run: |
+          echo "❌ Nightly React Native build failed!"
+          echo "Please check the workflow logs for details."
+          exit 1
