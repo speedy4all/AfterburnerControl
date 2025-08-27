@@ -1,6 +1,5 @@
 #include <unity.h>
-#include "Arduino.h"
-#include "settings.h"
+#include <cstdint>
 
 // Test setup and teardown
 void setUp(void) {

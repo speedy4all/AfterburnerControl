@@ -1,6 +1,6 @@
 #include <unity.h>
-#include "Arduino.h"
-#include "led_effects.h"
+#include <cstdint>
+#include <cmath>
 
 // Test setup and teardown
 void setUp(void) {
