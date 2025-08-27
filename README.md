@@ -106,8 +106,8 @@ ESP32-C3-Afterburner/
 pip install platformio
 
 # Clone this repository
-git clone https://github.com/speedy4all/ESP32-C3-Afterburner.git
-cd ESP32-C3-Afterburner
+git clone https://github.com/speedy4all/AfterburnerControl.git
+cd AfterburnerControl
 
 # Install dependencies
 cd firmware
@@ -277,9 +277,9 @@ For support and questions:
 
 **ESP32 C3 Afterburner Project** - Bringing realistic afterburner effects to RC models
 
-[![GitHub stars](https://img.shields.io/github/stars/speedy4all/ESP32-C3-Afterburner?style=social)](https://github.com/speedy4all/ESP32-C3-Afterburner/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/speedy4all/ESP32-C3-Afterburner?style=social)](https://github.com/speedy4all/ESP32-C3-Afterburner/network/members)
-[![GitHub issues](https://img.shields.io/github/issues/speedy4all/ESP32-C3-Afterburner)](https://github.com/speedy4all/ESP32-C3-Afterburner/issues)
-[![GitHub license](https://img.shields.io/github/license/speedy4all/ESP32-C3-Afterburner)](https://github.com/speedy4all/ESP32-C3-Afterburner/blob/main/LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/speedy4all/AfterburnerControl?style=social)](https://github.com/speedy4all/AfterburnerControl/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/speedy4all/AfterburnerControl?style=social)](https://github.com/speedy4all/AfterburnerControl/network/members)
+[![GitHub issues](https://img.shields.io/github/issues/speedy4all/AfterburnerControl)](https://github.com/speedy4all/AfterburnerControl/issues)
+[![GitHub license](https://img.shields.io/github/license/speedy4all/AfterburnerControl)](https://github.com/speedy4all/AfterburnerControl/blob/main/LICENSE)
 
 </div>
