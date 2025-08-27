@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Background circle -->
+    <path
+        android:fillColor="#1A1A1A"
+        android:pathData="M54,54m-48,0a48,48 0,1 1,96 0a48,48 0,1 1,-96 0" />
+    
+    <!-- Engine core (inner circle) -->
+    <path
+        android:fillColor="#FF6B35"
+        android:pathData="M54,54m-20,0a20,20 0,1 1,40 0a20,20 0,1 1,-40 0" />
+    
+    <!-- Afterburner flame effect -->
+    <path
+        android:fillColor="#FF4500"
+        android:pathData="M54,34 L44,44 L54,54 L64,44 Z" />
+    
+    <path
+        android:fillColor="#FF6347"
+        android:pathData="M54,44 L48,50 L54,54 L60,50 Z" />
+    
+    <!-- Sparkle effects -->
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M30,30 L32,30 L32,32 L30,32 Z" />
+    
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M76,30 L78,30 L78,32 L76,32 Z" />
+    
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M30,76 L32,76 L32,78 L30,78 Z" />
+    
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M76,76 L78,76 L78,78 L76,78 Z" />
+    
+    <!-- LED strip representation -->
+    <path
+        android:fillColor="#00FF00"
+        android:pathData="M20,54 L30,54 L30,56 L20,56 Z" />
+    
+    <path
+        android:fillColor="#00FF00"
+        android:pathData="M78,54 L88,54 L88,56 L78,56 Z" />
+    
+    <!-- ESP32 representation -->
+    <path
+        android:fillColor="#4169E1"
+        android:pathData="M48,48 L60,48 L60,60 L48,60 Z" />
+    
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M50,50 L58,50 L58,58 L50,58 Z" />
+</vector>

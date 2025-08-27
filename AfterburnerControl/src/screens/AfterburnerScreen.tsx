@@ -198,7 +198,7 @@ export const AfterburnerScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      {true && (
+      {connected && (
         <>
           {/* Status Display */}
           <View style={styles.statusContainer}>
