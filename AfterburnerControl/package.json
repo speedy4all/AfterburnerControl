@@ -1,6 +1,7 @@
 {
   "name": "AfterburnerControl",
   "version": "0.0.1",
+  "description": "React Native app for ESP32 Afterburner control - Updated for workflow testing",
   "private": true,
   "scripts": {
     "android": "react-native run-android",
