@@ -164,10 +164,16 @@ jobs:
           DEVELOPER_DIR: /Applications/Xcode_16.1.app/Contents/Developer
         run: |
           cd ios
-          echo "Attempting to build with iPhone 15 simulator..."
-          xcodebuild -workspace AfterburnerControl.xcworkspace -scheme AfterburnerControl -configuration Release -destination 'platform=iOS Simulator,name=iPhone 15' -derivedDataPath build || {
-            echo "iPhone 15 simulator not available, trying generic iOS Simulator..."
-            xcodebuild -workspace AfterburnerControl.xcworkspace -scheme AfterburnerControl -configuration Release -destination 'platform=iOS Simulator' -derivedDataPath build
+          echo "Attempting to build with iPhone 16 (iOS 18.2) simulator..."
+          xcodebuild -workspace AfterburnerControl.xcworkspace -scheme AfterburnerControl -configuration Release -destination 'platform=iOS Simulator,id=1A39A28F-677F-4200-9E54-1F6CF100FE1F' -derivedDataPath build || {
+            echo "iPhone 16 (iOS 18.2) simulator not available, trying iPhone 16 (iOS 18.1)..."
+            xcodebuild -workspace AfterburnerControl.xcworkspace -scheme AfterburnerControl -configuration Release -destination 'platform=iOS Simulator,id=B05C1CFC-2036-4762-8451-6D9F1769D3E3' -derivedDataPath build || {
+              echo "iPhone 16 simulators not available, trying generic iPhone 16..."
+              xcodebuild -workspace AfterburnerControl.xcworkspace -scheme AfterburnerControl -configuration Release -destination 'platform=iOS Simulator,name=iPhone 16' -derivedDataPath build || {
+                echo "iPhone 16 simulator not available, trying generic iOS Simulator..."
+                xcodebuild -workspace AfterburnerControl.xcworkspace -scheme AfterburnerControl -configuration Release -destination 'platform=iOS Simulator' -derivedDataPath build
+              }
+            }
           }
           cd ..
 
