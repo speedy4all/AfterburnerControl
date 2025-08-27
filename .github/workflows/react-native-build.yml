@@ -46,7 +46,7 @@ jobs:
           cd ..
 
       - name: Upload Android APK
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: android-apk
           path: AfterburnerControl/android/app/build/outputs/apk/release/
@@ -81,7 +81,7 @@ jobs:
           npx react-native run-ios --configuration Release --simulator="iPhone 14"
 
       - name: Upload iOS build
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ios-build
           path: AfterburnerControl/ios/build/
