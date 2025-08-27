@@ -48,6 +48,7 @@ ESP32-C3-Afterburner/
 ## 🛠️ Hardware Requirements
 
 ### Required Components
+
 - **ESP32 C3 OLED Development Board** (main controller)
 - **WS2812B LED Strip** (afterburner effect display)
 - **Navigation Button** (momentary push button)
@@ -55,6 +56,7 @@ ESP32-C3-Afterburner/
 - **Power Supply** (5V for LED strip, 3.3V for logic)
 
 ### Optional Components
+
 - **External 5V Power Supply** (for large LED strips)
 - **Capacitors** (for LED strip stability)
 - **Heat Shrink/Electrical Tape** (for insulation)
@@ -62,7 +64,7 @@ ESP32-C3-Afterburner/
 ## 🔧 Pin Configuration
 
 | Pin    | Function          | Direction     | Component            |
-|--------|-------------------|---------------|----------------------|
+| ------ | ----------------- | ------------- | -------------------- |
 | GPIO0  | BOOT Button       | Input         | Programming          |
 | GPIO1  | UART TX           | Output        | Serial Communication |
 | GPIO2  | Navigation Button | Input         | OLED Page Control    |
@@ -75,12 +77,14 @@ ESP32-C3-Afterburner/
 ## 📚 Documentation
 
 ### Setup Guides
+
 - **[Complete Wiring Diagram](firmware/ESP32_AFTERBURNER_COMPLETE_WIRING.md)** - Full hardware setup
 - **[OLED Display Guide](firmware/OLED_DISPLAY_README.md)** - Display functionality
 - **[Navigation Button Guide](firmware/NAVIGATION_BUTTON_WIRING.md)** - Button setup
 - **[Project Verification](firmware/PROJECT_VERIFICATION.md)** - Complete verification checklist
 
 ### Firmware Documentation
+
 - **[Firmware README](firmware/README.md)** - Detailed firmware documentation
 - **Code Structure** - Modular design with separate classes for each component
 - **API Reference** - Function descriptions and parameters
@@ -88,6 +92,7 @@ ESP32-C3-Afterburner/
 ## 🚀 Quick Start
 
 ### 1. Hardware Setup
+
 ```bash
 # Follow the complete wiring guide
 # Connect components according to pin configuration
@@ -95,12 +100,13 @@ ESP32-C3-Afterburner/
 ```
 
 ### 2. Software Setup
+
 ```bash
 # Install PlatformIO
 pip install platformio
 
 # Clone this repository
-git clone https://github.com/yourusername/ESP32-C3-Afterburner.git
+git clone https://github.com/speedy4all/ESP32-C3-Afterburner.git
 cd ESP32-C3-Afterburner
 
 # Install dependencies
@@ -109,6 +115,7 @@ pio lib install
 ```
 
 ### 3. Configuration
+
 ```cpp
 // Edit firmware/src/main.cpp to configure:
 oledDisplay.begin(2);  // Navigation button pin
@@ -117,6 +124,7 @@ oledDisplay.begin(2);  // Navigation button pin
 ```
 
 ### 4. Upload and Test
+
 ```bash
 # Upload to ESP32 C3 via USB-C
 pio run --target upload
@@ -128,6 +136,7 @@ pio device monitor
 ## 🎮 Features
 
 ### LED Effects
+
 - **Core Effect**: Simulates jet engine core with color gradients
 - **Afterburner Overlay**: Dynamic flame effect based on throttle
 - **Flicker Simulation**: Realistic engine flickering
@@ -135,6 +144,7 @@ pio device monitor
 - **Color Customization**: Full RGB control for start/end colors
 
 ### User Interface
+
 - **Three-Page OLED Display**:
   - Main Status (mode, throttle, connection)
   - Settings (speed, brightness, LED count, threshold)
@@ -144,6 +154,7 @@ pio device monitor
 - **BLE App**: Remote control and monitoring
 
 ### Effect Modes
+
 - **Linear**: Direct throttle-to-brightness mapping
 - **Ease**: Smooth acceleration curve
 - **Pulse**: Pulsing effect at high throttle
@@ -151,12 +162,14 @@ pio device monitor
 ## 📊 Performance
 
 ### Power Requirements
+
 - **ESP32 C3**: ~100-200mA at 5V
 - **LED Strip**: ~60mA per LED at full brightness
 - **45 LEDs**: ~2.7A at 5V (13.5W)
 - **100 LEDs**: ~6A at 5V (30W)
 
 ### Timing
+
 - **Main Loop**: 50 FPS (20ms delay)
 - **OLED Update**: 500ms intervals
 - **BLE Status**: 200ms notifications
@@ -165,17 +178,21 @@ pio device monitor
 ## 🔍 Troubleshooting
 
 ### Common Issues
+
 1. **OLED Display Issues**
+
    - Check I2C connections (GPIO4/5)
    - Verify power supply (3.3V)
    - Ensure correct screen type (128x64, starting at 13,14)
 
 2. **LED Strip Problems**
+
    - Verify data connection (GPIO18)
    - Check power supply adequacy
    - Ensure correct data flow direction
 
 3. **Throttle Input Issues**
+
    - Check PWM signal on GPIO34
    - Verify signal range (1-2ms typical)
    - Test with potentiometer
@@ -186,6 +203,7 @@ pio device monitor
    - Look for "ABurner" device in app
 
 ### Debug Information
+
 - **Serial Monitor**: Real-time system status
 - **OLED Display**: Current settings and throttle
 - **LED Patterns**: Visual system state indication
@@ -196,6 +214,7 @@ pio device monitor
 We welcome contributions! Please feel free to submit pull requests or open issues for bugs and feature requests.
 
 ### Development Setup
+
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Commit your changes (`git commit -m 'Add amazing feature'`)
@@ -203,6 +222,7 @@ We welcome contributions! Please feel free to submit pull requests or open issue
 5. Open a Pull Request
 
 ### Code Style
+
 - Follow existing code formatting
 - Add comments for complex logic
 - Update documentation for new features
@@ -223,6 +243,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📞 Support
 
 For support and questions:
+
 1. Check the troubleshooting section
 2. Review the wiring diagrams
 3. Monitor Serial output for debug information
@@ -231,6 +252,7 @@ For support and questions:
 ## 🔮 Future Enhancements
 
 ### Planned Features
+
 - **WiFi Connectivity**: Web interface for configuration
 - **Multiple LED Strips**: Support for multiple afterburner zones
 - **Sound Effects**: Audio simulation via buzzer
@@ -239,6 +261,7 @@ For support and questions:
 - **Advanced Effects**: More realistic engine simulations
 
 ### Hardware Expansions
+
 - **Additional Sensors**: Temperature, vibration, pressure
 - **External Displays**: Larger status displays
 - **Audio Output**: Engine sound simulation
@@ -254,9 +277,9 @@ For support and questions:
 
 **ESP32 C3 Afterburner Project** - Bringing realistic afterburner effects to RC models
 
-[![GitHub stars](https://img.shields.io/github/stars/yourusername/ESP32-C3-Afterburner?style=social)](https://github.com/yourusername/ESP32-C3-Afterburner/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/yourusername/ESP32-C3-Afterburner?style=social)](https://github.com/yourusername/ESP32-C3-Afterburner/network/members)
-[![GitHub issues](https://img.shields.io/github/issues/yourusername/ESP32-C3-Afterburner)](https://github.com/yourusername/ESP32-C3-Afterburner/issues)
-[![GitHub license](https://img.shields.io/github/license/yourusername/ESP32-C3-Afterburner)](https://github.com/yourusername/ESP32-C3-Afterburner/blob/main/LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/speedy4all/ESP32-C3-Afterburner?style=social)](https://github.com/speedy4all/ESP32-C3-Afterburner/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/speedy4all/ESP32-C3-Afterburner?style=social)](https://github.com/speedy4all/ESP32-C3-Afterburner/network/members)
+[![GitHub issues](https://img.shields.io/github/issues/speedy4all/ESP32-C3-Afterburner)](https://github.com/speedy4all/ESP32-C3-Afterburner/issues)
+[![GitHub license](https://img.shields.io/github/license/speedy4all/ESP32-C3-Afterburner)](https://github.com/speedy4all/ESP32-C3-Afterburner/blob/main/LICENSE)
 
 </div>
