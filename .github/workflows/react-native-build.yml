@@ -1,0 +1,88 @@
+name: Build React Native App
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "AfterburnerControl/**"
+  pull_request:
+    branches: [master]
+    paths:
+      - "AfterburnerControl/**"
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+          cache-dependency-path: AfterburnerControl/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./AfterburnerControl
+        run: npm ci
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: "zulu"
+          java-version: "11"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v2
+
+      - name: Build Android APK
+        working-directory: ./AfterburnerControl
+        run: |
+          cd android
+          ./gradlew assembleRelease
+          cd ..
+
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: android-apk
+          path: AfterburnerControl/android/app/build/outputs/apk/release/
+          retention-days: 7
+
+  build-ios:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+          cache-dependency-path: AfterburnerControl/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./AfterburnerControl
+        run: npm ci
+
+      - name: Install iOS dependencies
+        working-directory: ./AfterburnerControl/ios
+        run: |
+          pod install
+
+      - name: Build iOS
+        working-directory: ./AfterburnerControl
+        run: |
+          npx react-native run-ios --configuration Release --simulator="iPhone 14"
+
+      - name: Upload iOS build
+        uses: actions/upload-artifact@v3
+        with:
+          name: ios-build
+          path: AfterburnerControl/ios/build/
+          retention-days: 7

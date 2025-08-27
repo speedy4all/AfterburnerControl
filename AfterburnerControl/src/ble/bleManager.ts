@@ -268,3 +268,6 @@ class AfterburnerBLEManager {
 
 // Export singleton instance
 export const bleManager = new AfterburnerBLEManager();
+
+// Export the class for testing
+export { AfterburnerBLEManager };

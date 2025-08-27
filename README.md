@@ -5,6 +5,9 @@ A complete LED afterburner effect system for RC models, featuring real-time thro
 ![ESP32 C3 Afterburner](https://img.shields.io/badge/ESP32%20C3%20Afterburner-Project-blue)
 ![Platform](https://img.shields.io/badge/Platform-ESP32%20C3-green)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
+![Firmware Build](https://github.com/speedy4all/AfterburnerControl/workflows/Build%20ESP32%20C3%20Firmware/badge.svg)
+![React Native Build](https://github.com/speedy4all/AfterburnerControl/workflows/Build%20React%20Native%20App/badge.svg)
+![Tests](https://github.com/speedy4all/AfterburnerControl/workflows/Run%20Tests/badge.svg)
 
 ## 🚀 Project Overview
 
@@ -227,6 +230,33 @@ We welcome contributions! Please feel free to submit pull requests or open issue
 - Add comments for complex logic
 - Update documentation for new features
 - Include tests when possible
+
+## 🔄 CI/CD Pipeline
+
+This project uses GitHub Actions for continuous integration and deployment:
+
+### Build Workflows
+
+- **Firmware Build**: Automatically builds the ESP32 C3 firmware using PlatformIO
+- **React Native Build**: Builds both Android APK and iOS app
+- **Tests**: Runs unit tests for both firmware and mobile app
+
+### Build Status
+
+The build status badges above show the current state of:
+
+- ✅ **Firmware Build**: ESP32 C3 firmware compilation
+- ✅ **React Native Build**: Mobile app builds for Android and iOS
+- ✅ **Tests**: Unit test execution and coverage
+
+### Artifacts
+
+Build artifacts are automatically generated and can be downloaded from the GitHub Actions page:
+
+- Firmware binaries (.bin files)
+- Android APK files
+- iOS build packages
+- Test coverage reports
 
 ## 📄 License
 
