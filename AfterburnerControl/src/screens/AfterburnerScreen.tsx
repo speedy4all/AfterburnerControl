@@ -27,6 +27,7 @@ import {
   DeviceStatus,
 } from '../ble/device';
 import { MODES, DEFAULT_VALUES } from '../ble/uuids';
+import { bleManager } from '../ble/bleManager';
 
 export const AfterburnerScreen: React.FC = () => {
   const [connected, setConnected] = useState(false);
@@ -34,6 +35,20 @@ export const AfterburnerScreen: React.FC = () => {
   const [settings, setSettings] = useState<AfterburnerSettings>(DEFAULT_VALUES);
   const [status, setStatus] = useState<DeviceStatus | null>(null);
   const [statusUnsubscribe, setStatusUnsubscribe] = useState<(() => void) | null>(null);
+  const [isSimulator, setIsSimulator] = useState(false);
+  const [simulatorWarning, setSimulatorWarning] = useState('');
+
+  // Check for simulator mode on component mount
+  useEffect(() => {
+    const checkSimulator = () => {
+      const simulatorMode = bleManager.isSimulatorMode();
+      const warning = bleManager.getSimulatorWarning();
+      setIsSimulator(simulatorMode);
+      setSimulatorWarning(warning);
+    };
+    
+    checkSimulator();
+  }, []);
 
   // Connect to device
   const handleConnect = async () => {
@@ -197,6 +212,15 @@ export const AfterburnerScreen: React.FC = () => {
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* Simulator Warning */}
+      {isSimulator && (
+        <View style={styles.simulatorWarning}>
+          <Text style={styles.simulatorWarningText}>
+            ⚠️ {simulatorWarning}
+          </Text>
+        </View>
+      )}
 
       {connected && (
         <>
@@ -501,5 +525,19 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  simulatorWarning: {
+    backgroundColor: '#fff3cd',
+    borderColor: '#ffeaa7',
+    borderWidth: 1,
+    borderRadius: 8,
+    margin: 16,
+    padding: 12,
+  },
+  simulatorWarningText: {
+    color: '#856404',
+    fontSize: 14,
+    textAlign: 'center',
+    fontWeight: '500',
   },
 });

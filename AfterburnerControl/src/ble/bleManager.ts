@@ -1,18 +1,29 @@
 import { BleManager, Device, State } from 'react-native-ble-plx';
+import { Platform } from 'react-native';
 import { BLE_UUIDS, DEVICE_NAME } from './uuids';
 
 class AfterburnerBLEManager {
   private manager: BleManager;
   private device: Device | null = null;
   private isScanning = false;
+  private isSimulator = false;
 
   constructor() {
     this.manager = new BleManager();
+    // Detect if running in iOS Simulator or Android Emulator
+    this.isSimulator = __DEV__ && (Platform.OS === 'ios' || Platform.OS === 'android');
   }
 
   // Initialize BLE manager
   async initialize(): Promise<boolean> {
     try {
+      // Handle simulator/emulator limitation
+      if (this.isSimulator) {
+        console.log('Running in Simulator/Emulator - BLE not available');
+        console.log('BLE functionality will work on real devices');
+        return false;
+      }
+
       const state = await this.manager.state();
       console.log('BLE State:', state);
       
@@ -41,6 +52,12 @@ class AfterburnerBLEManager {
     if (this.isScanning) {
       console.log('Already scanning...');
       return null;
+    }
+
+    // Handle simulator/emulator limitation
+    if (this.isSimulator) {
+      console.log('BLE scanning not available in Simulator/Emulator');
+      throw new Error('BLE not available in Simulator/Emulator. Please test on a real device.');
     }
 
     try {
@@ -228,6 +245,19 @@ class AfterburnerBLEManager {
   // Check if connected
   isConnected(): boolean {
     return this.device !== null;
+  }
+
+  // Check if running in simulator
+  isSimulatorMode(): boolean {
+    return this.isSimulator;
+  }
+
+  // Get simulator warning message
+  getSimulatorWarning(): string {
+    if (this.isSimulator) {
+      return 'BLE not available in Simulator/Emulator. Please test on a real device.';
+    }
+    return '';
   }
 
   // Destroy manager
