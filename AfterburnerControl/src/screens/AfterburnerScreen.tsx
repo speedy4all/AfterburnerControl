@@ -12,19 +12,13 @@ import { ColorInput } from '../components/ColorInput';
 import {
   connectToAfterburner,
   disconnectFromAfterburner,
-  writeMode,
-  writeStartColor,
-  writeEndColor,
-  writeSpeedMs,
-  writeBrightness,
-  writeNumLeds,
-  writeAbThreshold,
   savePreset,
   pushAllSettings,
   readSettings,
   monitorStatus,
   monitorSettings,
-  sendPing,
+  startThrottleCalibration,
+  resetThrottleCalibration,
   AfterburnerSettings,
   DeviceStatus,
 } from '../websocket/device';
@@ -137,69 +131,7 @@ export const AfterburnerScreen: React.FC = () => {
     setSettings(prev => ({ ...prev, ...newSettings }));
   }, []);
 
-  // Send individual settings
-  const sendMode = async () => {
-    try {
-      await writeMode(settings.mode);
-      Alert.alert('Success', 'Mode updated');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to update mode');
-    }
-  };
-
-  const sendStartColor = async () => {
-    try {
-      await writeStartColor(settings.startColor);
-      Alert.alert('Success', 'Start color updated');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to update start color');
-    }
-  };
-
-  const sendEndColor = async () => {
-    try {
-      await writeEndColor(settings.endColor);
-      Alert.alert('Success', 'End color updated');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to update end color');
-    }
-  };
-
-  const sendSpeed = async () => {
-    try {
-      await writeSpeedMs(settings.speedMs);
-      Alert.alert('Success', 'Speed updated');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to update speed');
-    }
-  };
-
-  const sendBrightness = async () => {
-    try {
-      await writeBrightness(settings.brightness);
-      Alert.alert('Success', 'Brightness updated');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to update brightness');
-    }
-  };
-
-  const sendNumLeds = async () => {
-    try {
-      await writeNumLeds(settings.numLeds);
-      Alert.alert('Success', 'Number of LEDs updated');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to update number of LEDs');
-    }
-  };
-
-  const sendAbThreshold = async () => {
-    try {
-      await writeAbThreshold(settings.abThreshold);
-      Alert.alert('Success', 'Afterburner threshold updated');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to update afterburner threshold');
-    }
-  };
+  // All individual send functions removed - only use "Push All Settings"
 
   // Push all settings
   const handlePushAll = async () => {
@@ -221,27 +153,25 @@ export const AfterburnerScreen: React.FC = () => {
     }
   };
 
-  // Test ping
-  const handlePing = async () => {
+
+
+  // Start throttle calibration
+  const handleStartCalibration = async () => {
     try {
-      await sendPing();
-      Alert.alert('Success', 'Ping sent to device');
+      await startThrottleCalibration();
+      Alert.alert('Success', 'Throttle calibration started! Move your throttle stick from MIN to MAX several times.');
     } catch (error) {
-      Alert.alert('Error', 'Failed to send ping');
+      Alert.alert('Error', `Failed to start calibration: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
-  // Test connection (for debugging)
-  const handleTestConnection = async () => {
+  // Reset throttle calibration
+  const handleResetCalibration = async () => {
     try {
-      const result = await websocketManager.testConnection();
-      if (result.success) {
-        Alert.alert('Success', 'Connection test successful!');
-      } else {
-        Alert.alert('Error', `Connection test failed: ${result.error}`);
-      }
+      await resetThrottleCalibration();
+      Alert.alert('Success', 'Throttle calibration reset! Using default values (900-2100 μs).');
     } catch (error) {
-      Alert.alert('Error', `Connection test error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      Alert.alert('Error', `Failed to reset calibration: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -315,22 +245,70 @@ export const AfterburnerScreen: React.FC = () => {
 
       {connected && (
         <>
-          {/* Status Display */}
-          <View style={styles.statusContainer}>
-            <Text style={styles.sectionTitle}>Device Status</Text>
-            {status ? (
-              <View style={styles.statusInfo}>
-                <Text style={styles.statusText}>
-                  Throttle: {(status.throttle * 100).toFixed(1)}%
-                </Text>
-                <Text style={styles.statusText}>
-                  Mode: {MODES[status.mode]?.name || 'Unknown'}
-                </Text>
-              </View>
-            ) : (
-              <Text style={styles.statusText}>Waiting for status...</Text>
-            )}
-          </View>
+                     {/* Status Display */}
+           <View style={styles.statusContainer}>
+             <Text style={styles.sectionTitle}>Device Status</Text>
+             {status ? (
+               <View style={styles.statusInfo}>
+                 <Text style={styles.statusText}>
+                   Throttle: {(status.throttle * 100).toFixed(1)}%
+                 </Text>
+                 <Text style={styles.statusText}>
+                   Mode: {MODES[status.mode]?.name || 'Unknown'}
+                 </Text>
+               </View>
+             ) : (
+               <Text style={styles.statusText}>Waiting for status...</Text>
+             )}
+           </View>
+
+           {/* Throttle Calibration Status */}
+           <View style={styles.statusContainer}>
+             <Text style={styles.sectionTitle}>Throttle Calibration</Text>
+             {status ? (
+               <View style={styles.statusInfo}>
+                 <Text style={styles.statusText}>
+                   Signal: {status.signalValid ? '✅ Valid' : '❌ Invalid'}
+                 </Text>
+                 <Text style={styles.statusText}>
+                   Pulses: {status.pulseCount} (Invalid: {status.invalidPulseCount})
+                 </Text>
+                 {status.calibrating && (
+                   <Text style={styles.statusText}>
+                     🔄 Calibrating... ({status.pulseCount} samples)
+                   </Text>
+                 )}
+                                   {status.calibrationComplete && (
+                    <>
+                      <Text style={styles.statusText}>
+                        ✅ Calibration Complete
+                      </Text>
+                      <Text style={styles.statusText}>
+                        Range: {status.minPulse} - {status.maxPulse} μs
+                      </Text>
+                      <Text style={styles.statusText}>
+                        Span: {status.pulseRange} μs
+                      </Text>
+                    </>
+                  )}
+                  {!status.calibrating && !status.calibrationComplete && (
+                    <>
+                      <Text style={styles.statusText}>
+                        ⚠️ Using Default Values
+                      </Text>
+                      <Text style={styles.statusText}>
+                        Range: {status.minPulse} - {status.maxPulse} μs
+                      </Text>
+                      <Text style={styles.statusText}>
+                        Span: {status.pulseRange} μs
+                      </Text>
+                    </>
+                  )}
+               </View>
+             ) : (
+               <Text style={styles.statusText}>Waiting for status...</Text>
+             )}
+           </View>
 
           {/* Mode Selection */}
           <View style={styles.section}>
@@ -356,26 +334,22 @@ export const AfterburnerScreen: React.FC = () => {
                 </TouchableOpacity>
               ))}
             </View>
-            <TouchableOpacity style={styles.sendButton} onPress={sendMode}>
-              <Text style={styles.sendButtonText}>Send Mode</Text>
-            </TouchableOpacity>
+                         <Text style={styles.infoText}>Use "Push All Settings" to update</Text>
           </View>
 
           {/* Color Controls */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Colors</Text>
-                         <ColorInput
-               label="Start Color"
-               color={settings.startColor}
-               onColorChange={(color) => updateSettings({ startColor: [color.r, color.g, color.b] })}
-               onSend={sendStartColor}
-             />
-             <ColorInput
-               label="End Color"
-               color={settings.endColor}
-               onColorChange={(color) => updateSettings({ endColor: [color.r, color.g, color.b] })}
-               onSend={sendEndColor}
-             />
+                                       <ColorInput
+                label="Start Color"
+                color={settings.startColor}
+                onColorChange={(color) => updateSettings({ startColor: color })}
+              />
+              <ColorInput
+                label="End Color"
+                color={settings.endColor}
+                onColorChange={(color) => updateSettings({ endColor: color })}
+              />
           </View>
 
                      {/* Speed Control */}
@@ -401,9 +375,7 @@ export const AfterburnerScreen: React.FC = () => {
                  keyboardType="numeric"
                  placeholder="1200"
                />
-               <TouchableOpacity style={styles.sendButton} onPress={sendSpeed}>
-                 <Text style={styles.sendButtonText}>Send</Text>
-               </TouchableOpacity>
+                               <Text style={styles.infoText}>Use "Push All Settings" to update</Text>
              </View>
              <Text style={styles.rangeText}>Range: 100-5000 ms</Text>
            </View>
@@ -431,9 +403,7 @@ export const AfterburnerScreen: React.FC = () => {
                  keyboardType="numeric"
                  placeholder="200"
                />
-               <TouchableOpacity style={styles.sendButton} onPress={sendBrightness}>
-                 <Text style={styles.sendButtonText}>Send</Text>
-               </TouchableOpacity>
+                               <Text style={styles.infoText}>Use "Push All Settings" to update</Text>
              </View>
              <Text style={styles.rangeText}>Range: 10-255</Text>
            </View>
@@ -461,9 +431,7 @@ export const AfterburnerScreen: React.FC = () => {
                  keyboardType="numeric"
                  placeholder="45"
                />
-               <TouchableOpacity style={styles.sendButton} onPress={sendNumLeds}>
-                 <Text style={styles.sendButtonText}>Send</Text>
-               </TouchableOpacity>
+                               <Text style={styles.infoText}>Use "Push All Settings" to update</Text>
              </View>
              <Text style={styles.rangeText}>Range: 1-100 LEDs</Text>
            </View>
@@ -491,29 +459,44 @@ export const AfterburnerScreen: React.FC = () => {
                  keyboardType="numeric"
                  placeholder="80"
                />
-               <TouchableOpacity style={styles.sendButton} onPress={sendAbThreshold}>
-                 <Text style={styles.sendButtonText}>Send</Text>
-               </TouchableOpacity>
+                               <Text style={styles.infoText}>Use "Push All Settings" to update</Text>
              </View>
              <Text style={styles.rangeText}>Range: 0-100%</Text>
            </View>
 
-          {/* Action Buttons */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Actions</Text>
-            <TouchableOpacity style={styles.actionButton} onPress={handlePushAll}>
-              <Text style={styles.actionButtonText}>Push All Settings</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton} onPress={handleSavePreset}>
-              <Text style={styles.actionButtonText}>Save Preset</Text>
-            </TouchableOpacity>
-                         <TouchableOpacity style={styles.actionButton} onPress={handlePing}>
-               <Text style={styles.actionButtonText}>Test Ping</Text>
-             </TouchableOpacity>
-             <TouchableOpacity style={styles.actionButton} onPress={handleTestConnection}>
-               <Text style={styles.actionButtonText}>Test Connection</Text>
-             </TouchableOpacity>
-          </View>
+                                 {/* Action Buttons */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Actions</Text>
+              <View style={styles.infoBox}>
+                <Text style={styles.infoBoxText}>
+                  💡 <Text style={styles.infoBoxBold}>How to use:</Text> Adjust any settings above, then tap "Push All Settings to Device" to send all changes at once. This prevents controller crashes.
+                </Text>
+              </View>
+                           <TouchableOpacity style={[styles.actionButton, styles.primaryActionButton]} onPress={handlePushAll}>
+                <Text style={styles.actionButtonText}>🚀 Push All Settings to Device</Text>
+              </TouchableOpacity>
+                           <TouchableOpacity style={styles.actionButton} onPress={handleSavePreset}>
+                <Text style={styles.actionButtonText}>Save Preset</Text>
+              </TouchableOpacity>
+                           <TouchableOpacity 
+                style={[styles.actionButton, status?.calibrating && styles.actionButtonDisabled]} 
+                onPress={handleStartCalibration}
+                disabled={status?.calibrating}
+              >
+                <Text style={styles.actionButtonText}>
+                  {status?.calibrating ? 'Calibrating...' : 'Start Throttle Calibration'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.actionButton, status?.calibrating && styles.actionButtonDisabled]} 
+                onPress={handleResetCalibration}
+                disabled={status?.calibrating}
+              >
+                <Text style={styles.actionButtonText}>
+                  Reset to Default Values
+                </Text>
+              </TouchableOpacity>
+           </View>
         </>
       )}
     </ScrollView>
@@ -611,12 +594,10 @@ const styles = StyleSheet.create({
     color: 'white',
   },
   inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+    flexDirection: 'column',
+    gap: 8,
   },
   numberInput: {
-    flex: 1,
     height: 44,
     borderWidth: 1,
     borderColor: '#ddd',
@@ -625,16 +606,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: 'white',
   },
-  sendButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  sendButtonText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '600',
+  infoText: {
+    fontSize: 12,
+    color: '#666',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginTop: 4,
   },
   rangeText: {
     fontSize: 12,
@@ -649,6 +626,30 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 8,
     alignItems: 'center',
+  },
+  primaryActionButton: {
+    backgroundColor: '#28a745',
+    paddingVertical: 16,
+    marginBottom: 16,
+  },
+  infoBox: {
+    backgroundColor: '#e3f2fd',
+    borderColor: '#2196f3',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  infoBoxText: {
+    fontSize: 14,
+    color: '#1565c0',
+    lineHeight: 20,
+  },
+  infoBoxBold: {
+    fontWeight: '600',
+  },
+  actionButtonDisabled: {
+    backgroundColor: '#6c757d',
   },
   actionButtonText: {
     color: 'white',

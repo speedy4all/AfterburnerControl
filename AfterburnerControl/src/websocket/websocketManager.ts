@@ -8,8 +8,8 @@ export interface WebSocketMessage {
 
 export interface AfterburnerSettings {
   mode: number;
-  startColor: [number, number, number];
-  endColor: [number, number, number];
+  startColor: { r: number; g: number; b: number };
+  endColor: { r: number; g: number; b: number };
   speedMs: number;
   brightness: number;
   numLeds: number;
@@ -19,6 +19,14 @@ export interface AfterburnerSettings {
 export interface DeviceStatus {
   throttle: number;
   mode: number;
+  signalValid: boolean;
+  pulseCount: number;
+  invalidPulseCount: number;
+  calibrating: boolean;
+  calibrationComplete: boolean;
+  minPulse?: number;
+  maxPulse?: number;
+  pulseRange?: number;
 }
 
 export interface ConnectionStatus {
@@ -158,12 +166,6 @@ class AfterburnerWebSocketManager {
           try {
             console.log('WebSocket message received:', event.data);
             
-            // Handle pong response (plain text)
-            if (event.data === 'pong') {
-              console.log('Pong received from device');
-              return;
-            }
-            
             try {
               const data: WebSocketMessage = JSON.parse(event.data);
               this.handleMessage(data);
@@ -197,33 +199,41 @@ class AfterburnerWebSocketManager {
   }
 
   // Send settings to device
-  async sendSettings(settings: Partial<AfterburnerSettings>): Promise<void> {
+  async sendSettings(settings: AfterburnerSettings): Promise<void> {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       throw new Error('WebSocket not connected');
     }
 
     try {
-      const message = JSON.stringify(settings);
+      // Convert color objects to arrays for the device
+      const deviceSettings: any = { ...settings };
+      deviceSettings.startColor = [settings.startColor.r, settings.startColor.g, settings.startColor.b];
+      deviceSettings.endColor = [settings.endColor.r, settings.endColor.g, settings.endColor.b];
+      
+      const message = JSON.stringify(deviceSettings);
       console.log('Sending JSON message:', message);
       this.ws.send(message);
-      console.log('Settings sent:', settings);
+      console.log('Settings sent:', deviceSettings);
     } catch (error) {
       console.error('Failed to send settings:', error);
       throw error;
     }
   }
 
-  // Send ping message for testing
-  async sendPing(): Promise<void> {
+
+
+  // Send command to device
+  async sendCommand(command: string): Promise<void> {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       throw new Error('WebSocket not connected');
     }
 
     try {
-      console.log('Sending ping message');
-      this.ws.send('ping');
+      const message = JSON.stringify({ type: 'command', command });
+      console.log('Sending command:', message);
+      this.ws.send(message);
     } catch (error) {
-      console.error('Failed to send ping:', error);
+      console.error('Failed to send command:', error);
       throw error;
     }
   }
@@ -254,16 +264,29 @@ class AfterburnerWebSocketManager {
     if (data.type === 'status' && this.statusCallback) {
       const status: DeviceStatus = {
         throttle: data.thr || 0,
-        mode: data.mode || 0
+        mode: data.mode || 0,
+        signalValid: data.signalValid || false,
+        pulseCount: data.pulseCount || 0,
+        invalidPulseCount: data.invalidPulseCount || 0,
+        calibrating: data.calibrating || false,
+        calibrationComplete: data.calibrationComplete || false,
+        minPulse: data.minPulse,
+        maxPulse: data.maxPulse,
+        pulseRange: data.pulseRange
       };
       console.log('Calling status callback with:', status);
       this.statusCallback(status);
     } else if (data.type === 'settings' && this.settingsCallback) {
       // Handle settings update from device
+      // Convert array colors from device to object format for the mobile app
       const settings: AfterburnerSettings = {
         mode: data.mode || 0,
-        startColor: data.startColor || [255, 0, 0],
-        endColor: data.endColor || [0, 0, 255],
+        startColor: Array.isArray(data.startColor) 
+          ? { r: data.startColor[0] || 0, g: data.startColor[1] || 0, b: data.startColor[2] || 0 }
+          : { r: 255, g: 0, b: 0 },
+        endColor: Array.isArray(data.endColor)
+          ? { r: data.endColor[0] || 0, g: data.endColor[1] || 0, b: data.endColor[2] || 0 }
+          : { r: 0, g: 0, b: 255 },
         speedMs: data.speedMs || 1200,
         brightness: data.brightness || 200,
         numLeds: data.numLeds || 45,
@@ -309,18 +332,7 @@ class AfterburnerWebSocketManager {
     return this.enableTestMode;
   }
 
-  // Test connection to ESP8266 (for debugging)
-  async testConnection(): Promise<{ success: boolean; error?: string }> {
-    try {
-      console.log('Testing connection to ESP8266...');
-      const success = await this.connectToDevice();
-      return { success };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.error('Connection test failed:', errorMessage);
-      return { success: false, error: errorMessage };
-    }
-  }
+
 
   // Destroy manager
   destroy(): void {

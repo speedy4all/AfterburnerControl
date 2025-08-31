@@ -3,7 +3,7 @@
 A sophisticated LED afterburner controller for RC models using ESP8266 NodeMCU V3, featuring automatic throttle calibration, real-time LED effects, and wireless control via React Native app.
 
 ![ESP8266 Afterburner](https://img.shields.io/badge/ESP8266-NodeMCU%20V3-blue)
-![Version](https://img.shields.io/badge/Version-2.0.0-green)
+![Version](https://img.shields.io/badge/Version-2.1.0-green)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
 ## 🚀 Features
@@ -16,6 +16,7 @@ A sophisticated LED afterburner controller for RC models using ESP8266 NodeMCU V
 - **🎨 Multiple Effect Modes**: Static, Pulse, and Afterburner modes
 - **🔗 WebSocket Communication**: Real-time bidirectional communication
 - **💾 EEPROM Settings Storage**: Persistent configuration across reboots
+- **🛡️ Reliable Communication**: Optimized to prevent controller crashes
 
 ### 🔧 Hardware Features
 
@@ -75,12 +76,26 @@ Calibration saved!
 
 ### Mobile App Controls
 
+**🎯 Simplified Interface**: The app now uses a "Push All Settings" approach for maximum reliability:
+
 - **Mode Selection**: Choose effect type
-- **Color Control**: Set start/end colors (RGB)
+- **Color Control**: Set start/end colors (RGB) with visual color picker
 - **Brightness**: Adjust LED intensity (10-255)
 - **Speed**: Control animation speed (100-5000ms)
 - **LED Count**: Set number of LEDs (1-300)
 - **Afterburner Threshold**: Set activation point (0-100%)
+- **🚀 Push All Settings**: Send all changes at once to prevent controller crashes
+
+**💡 How to Use**:
+
+1. Adjust any settings using the intuitive controls
+2. Tap "🚀 Push All Settings to Device" to send all changes
+3. The device will update immediately without crashes
+
+### Throttle Calibration Controls
+
+- **Start Calibration**: Begin automatic throttle calibration
+- **Reset to Default Values**: Use default PWM range (900-2100 μs)
 
 ## 🔧 Configuration
 
@@ -121,6 +136,12 @@ Calibration saved!
 - Verify password "afterburner123"
 - Ensure device is within range
 
+**Controller crashes when changing settings?**
+
+- Use "Push All Settings" instead of individual controls
+- Ensure you're connected to the Afterburner_AP WiFi network
+- Check that the ESP8266 is powered properly
+
 ## 📊 Debug Output
 
 The system provides comprehensive debug information:
@@ -136,28 +157,37 @@ PWM: 988 us -> 0.07 throttle
 LED Colors - Start: [255,0,0], End: [0,255,0], Throttle: 0.07
 ```
 
-## 🔄 Recent Changes (v2.0)
+## 🔄 Recent Changes (v2.1.0)
 
 ### ✅ Added Features
 
-- **Automatic Throttle Calibration**: Works with any transmitter
-- **Enhanced PWM Detection**: Improved signal validation
-- **Real-time Debug Output**: Comprehensive serial monitoring
-- **Dynamic Color Mapping**: Uses calibrated PWM range
-- **Improved Error Handling**: Better failsafe mechanisms
+- **Simplified Mobile Interface**: Removed individual setting controls for reliability
+- **"Push All Settings" Approach**: Send complete settings at once to prevent crashes
+- **Enhanced Color Picker**: Visual RGB color selection with predefined palettes
+- **Improved Error Handling**: Better validation and crash prevention
+- **Streamlined UI**: Cleaner, more intuitive interface
 
 ### ❌ Removed Features
 
+- **Individual Setting Controls**: Removed to prevent controller crashes
+- **Test Ping/Connection**: Removed debugging features for cleaner interface
 - **OLED Display Support**: Removed to reduce complexity
 - **Manual PWM Configuration**: Replaced with auto-calibration
-- **Excessive Debug Output**: Streamlined for clarity
 
 ### 🔧 Technical Improvements
 
-- **Faster Throttle Response**: Increased smoothing factor
-- **Better Signal Validation**: Improved PWM range detection
-- **Enhanced LED Effects**: More responsive color transitions
-- **Optimized Memory Usage**: Reduced RAM footprint
+- **Atomic Settings Updates**: Complete settings replacement instead of partial updates
+- **Enhanced Validation**: Comprehensive input validation on both app and firmware
+- **Optimized WebSocket Communication**: Reduced message frequency and improved reliability
+- **Better Memory Management**: Reduced JSON buffer sizes and improved EEPROM handling
+- **Deferred EEPROM Saves**: Moved saves to main loop to prevent watchdog resets
+
+### 🛡️ Reliability Improvements
+
+- **Crash Prevention**: Multiple layers of validation and error handling
+- **Watchdog Timer Management**: Proper feeding during critical operations
+- **Rate Limiting**: Prevents overwhelming the controller with rapid updates
+- **Memory Optimization**: Reduced memory fragmentation and improved stability
 
 ## 📁 Project Structure
 
@@ -174,6 +204,9 @@ Afterburner/
 │   └── README.md            # Firmware documentation
 ├── AfterburnerControl/       # React Native app
 │   ├── src/                 # App source code
+│   │   ├── screens/         # UI screens
+│   │   ├── components/      # Reusable components
+│   │   └── websocket/       # WebSocket communication
 │   ├── package.json         # Dependencies
 │   └── README.md            # App documentation
 ├── docs/                    # Additional documentation
@@ -210,4 +243,4 @@ For support and questions:
 
 ---
 
-**NodeMCU V3 Edition v2.0.0** - The most user-friendly and reliable ESP8266 afterburner controller yet! 🛩️
+**NodeMCU V3 Edition v2.1.0** - The most reliable and user-friendly ESP8266 afterburner controller! 🛩️

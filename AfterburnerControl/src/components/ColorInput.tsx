@@ -14,14 +14,12 @@ interface ColorInputProps {
   label: string;
   color: { r: number; g: number; b: number } | [number, number, number];
   onColorChange: (color: { r: number; g: number; b: number }) => void;
-  onSend?: () => void;
 }
 
 export const ColorInput: React.FC<ColorInputProps> = ({
   label,
   color,
   onColorChange,
-  onSend,
 }) => {
   const [showColorPicker, setShowColorPicker] = useState(false);
 
@@ -34,11 +32,7 @@ export const ColorInput: React.FC<ColorInputProps> = ({
     onColorChange(newColor);
   };
 
-  const handleSend = () => {
-    if (onSend) {
-      onSend();
-    }
-  };
+
 
   const colorStyle = {
     backgroundColor: `rgb(${normalizedColor.r}, ${normalizedColor.g}, ${normalizedColor.b})`,
@@ -80,11 +74,7 @@ export const ColorInput: React.FC<ColorInputProps> = ({
         <Text style={styles.colorInfo}>{colorHex}</Text>
       </View>
 
-      {onSend && (
-        <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
-          <Text style={styles.sendButtonText}>Send</Text>
-        </TouchableOpacity>
-      )}
+
 
       <Modal
         visible={showColorPicker}
@@ -225,18 +215,7 @@ const styles = StyleSheet.create({
     fontFamily: 'monospace',
     textAlign: 'center',
   },
-  sendButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 6,
-    alignSelf: 'flex-end',
-  },
-  sendButtonText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '600',
-  },
+
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',

@@ -3,8 +3,8 @@ import { websocketManager, AfterburnerSettings, DeviceStatus } from './websocket
 // Default values for settings
 export const DEFAULT_VALUES: AfterburnerSettings = {
   mode: 0,
-  startColor: [255, 0, 0], // Red
-  endColor: [0, 0, 255],   // Blue
+  startColor: { r: 255, g: 0, b: 0 }, // Red
+  endColor: { r: 0, g: 0, b: 255 },   // Blue
   speedMs: 1200,
   brightness: 200,
   numLeds: 45,
@@ -33,75 +33,7 @@ export async function disconnectFromAfterburner(): Promise<void> {
   }
 }
 
-// Write mode setting
-export async function writeMode(mode: number): Promise<void> {
-  try {
-    await websocketManager.sendSettings({ mode });
-  } catch (error) {
-    console.error('Failed to write mode:', error);
-    throw error;
-  }
-}
-
-// Write start color setting
-export async function writeStartColor(color: [number, number, number]): Promise<void> {
-  try {
-    await websocketManager.sendSettings({ startColor: color });
-  } catch (error) {
-    console.error('Failed to write start color:', error);
-    throw error;
-  }
-}
-
-// Write end color setting
-export async function writeEndColor(color: [number, number, number]): Promise<void> {
-  try {
-    await websocketManager.sendSettings({ endColor: color });
-  } catch (error) {
-    console.error('Failed to write end color:', error);
-    throw error;
-  }
-}
-
-// Write speed setting
-export async function writeSpeedMs(speedMs: number): Promise<void> {
-  try {
-    await websocketManager.sendSettings({ speedMs });
-  } catch (error) {
-    console.error('Failed to write speed:', error);
-    throw error;
-  }
-}
-
-// Write brightness setting
-export async function writeBrightness(brightness: number): Promise<void> {
-  try {
-    await websocketManager.sendSettings({ brightness });
-  } catch (error) {
-    console.error('Failed to write brightness:', error);
-    throw error;
-  }
-}
-
-// Write number of LEDs setting
-export async function writeNumLeds(numLeds: number): Promise<void> {
-  try {
-    await websocketManager.sendSettings({ numLeds });
-  } catch (error) {
-    console.error('Failed to write number of LEDs:', error);
-    throw error;
-  }
-}
-
-// Write afterburner threshold setting
-export async function writeAbThreshold(abThreshold: number): Promise<void> {
-  try {
-    await websocketManager.sendSettings({ abThreshold });
-  } catch (error) {
-    console.error('Failed to write afterburner threshold:', error);
-    throw error;
-  }
-}
+// Individual setting functions removed - only use pushAllSettings for reliability
 
 // Push all settings at once
 export async function pushAllSettings(settings: AfterburnerSettings): Promise<void> {
@@ -161,12 +93,22 @@ export async function monitorSettings(callback: (settings: AfterburnerSettings) 
   }
 }
 
-// Send ping for testing
-export async function sendPing(): Promise<void> {
+
+
+export async function startThrottleCalibration(): Promise<void> {
   try {
-    await websocketManager.sendPing();
+    await websocketManager.sendCommand('start_calibration');
   } catch (error) {
-    console.error('Failed to send ping:', error);
+    console.error('Failed to start throttle calibration:', error);
+    throw error;
+  }
+}
+
+export async function resetThrottleCalibration(): Promise<void> {
+  try {
+    await websocketManager.sendCommand('reset_calibration');
+  } catch (error) {
+    console.error('Failed to reset throttle calibration:', error);
     throw error;
   }
 }

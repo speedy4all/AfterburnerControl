@@ -1,15 +1,16 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
+#include <EEPROM.h>
 #include "settings.h"
 #include "throttle.h"
 #include "led_effects.h"
 #include "wifi_service.h"
 
-// Global objects
+// Global instances
 SettingsManager settingsManager;
 ThrottleReader throttleReader;
+AfterburnerWiFiService wifiService(&settingsManager, &throttleReader);
 LEDEffects ledEffects;
-AfterburnerWiFiService wifiService(&settingsManager);
 
 // Demo mode flag (can be set via #define DEMO_MODE)
 #ifdef DEMO_MODE
@@ -24,6 +25,27 @@ bool testMode = true;
 #else
 bool testMode = false;
 #endif
+
+// EEPROM eraser function
+void eraseEEPROM() {
+  Serial.println("=== EEPROM ERASER ===");
+  Serial.println("Clearing all EEPROM data...");
+  
+  // Clear the entire EEPROM (512 bytes)
+  for (int i = 0; i < 512; i++) {
+    EEPROM.write(i, 0);
+    if (i % 64 == 0) {
+      Serial.printf("Cleared %d bytes...\n", i);
+      ESP.wdtFeed(); // Feed watchdog during long operation
+    }
+  }
+  
+  // Commit the changes
+  EEPROM.commit();
+  Serial.println("EEPROM completely erased!");
+  Serial.println("All settings and calibration data cleared.");
+  Serial.println("Device will use default values on next boot.");
+}
 
 // JSON parsing test function
 void testJsonParsing() {
@@ -181,45 +203,18 @@ void runTests() {
 }
 
 void setup() {
-  // Initialize serial communication
   Serial.begin(115200);
-  Serial.println("ESP8266 Afterburner Starting...");
+  Serial.println("\n=== AFTERBURNER CONTROLLER ===");
   
-  // Run hardware test only
-  testHardware();
+  // Uncomment the next line to erase EEPROM and start fresh
+  //eraseEEPROM();
   
-  if (testMode) {
-    runTests();
-    return;
-  }
-  
-  // OLED display initialization removed
-  Serial.println("OLED Display initialization skipped");
-  
-  // Initialize settings
+  // Initialize EEPROM and load settings
   settingsManager.begin();
   AfterburnerSettings& settings = settingsManager.getSettings();
   
-  // Force test colors for debugging
-  settings.startColor[0] = 255; settings.startColor[1] = 0; settings.startColor[2] = 0;   // Red
-  settings.endColor[0] = 0; settings.endColor[1] = 255; settings.endColor[2] = 0;         // Green
-  settings.brightness = 255;
-  Serial.println("Forced test colors: Red -> Green");
-  
   // Initialize throttle reader
   throttleReader.begin();
-  if (demoMode) {
-    throttleReader.setDemoMode(true);
-    Serial.println("Demo mode enabled");
-  } else {
-    // Disable demo mode to test real PWM
-    throttleReader.setDemoMode(false);
-    Serial.println("Demo mode disabled - testing real PWM signal");
-    
-    // Start automatic throttle calibration
-    Serial.println("Starting automatic throttle calibration...");
-    throttleReader.startCalibration();
-  }
   
   // Initialize LED effects
   ledEffects.begin(settings.numLeds);
@@ -227,7 +222,8 @@ void setup() {
   // Initialize WiFi service
   wifiService.begin();
   
-  Serial.println("ESP8266 Afterburner Ready!");
+  Serial.println("Throttle calibration disabled on startup - use mobile app to calibrate when needed");
+  Serial.println("Setup complete!");
 }
 
 void loop() {
@@ -235,45 +231,21 @@ void loop() {
     return; // Don't run main loop in test mode
   }
   
-  // Read throttle
+  // Update throttle reading (includes calibration update)
   float throttle = throttleReader.readThrottle();
   
   // Get current settings
   AfterburnerSettings& settings = settingsManager.getSettings();
   
-  // Debug output every 2 seconds
-  static unsigned long lastDebugTime = 0;
-  if (millis() - lastDebugTime > 2000) {
-    Serial.printf("Throttle: %.2f, Mode: %d, LEDs: %d", 
-                 throttle, settings.mode, settings.numLeds);
-    
-    if (throttleReader.isCalibrating()) {
-      Serial.printf(", Calibrating: %lu samples", throttleReader.getPulseCount());
-    } else if (throttleReader.isCalibrationComplete()) {
-      Serial.printf(", Calibrated: %lu-%lu us", 
-                   throttleReader.getMinPulse(), throttleReader.getMaxPulse());
-    }
-    
-    Serial.println();
-    lastDebugTime = millis();
-  }
-  
   // Update LED effects
   ledEffects.render(settings, throttle);
   
-  // Update WiFi status
-  wifiService.updateStatus(throttle, settings.mode);
-  
-  // Handle WiFi service loop
+  // Update WiFi service (handles WebSocket and deferred saves)
   wifiService.loop();
   
-  // Handle LED count changes
-  static uint16_t lastNumLeds = settings.numLeds;
-  if (settings.numLeds != lastNumLeds) {
-    ledEffects.update(settings.numLeds);
-    lastNumLeds = settings.numLeds;
-  }
+  // Update status via WiFi
+  wifiService.updateStatus(throttle, settings.mode);
   
-  // Small delay to maintain frame rate
-  delay(20); // ~50 FPS
+  // Small delay to prevent watchdog issues
+  delay(10);
 }

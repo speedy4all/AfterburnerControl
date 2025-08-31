@@ -10,11 +10,14 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
   }
 }
 
-AfterburnerWiFiService::AfterburnerWiFiService(SettingsManager* settings) {
+AfterburnerWiFiService::AfterburnerWiFiService(SettingsManager* settings, ThrottleReader* throttle) {
   settingsManager = settings;
+  throttleReader = throttle;
   webServer = nullptr;
   webSocket = nullptr;
   lastStatusUpdate = 0;
+  lastSettingsUpdate = 0;
+  settingsNeedSave = false;
   clientConnected = false;
   lastThrottle = 0.0;
   wifiServiceInstance = this;
@@ -66,9 +69,29 @@ void AfterburnerWiFiService::loop() {
   if (webSocket) {
     webSocket->loop();
   }
+  
+  // Handle deferred settings save
+  if (settingsNeedSave) {
+    Serial.println("Saving settings to EEPROM in main loop...");
+    ESP.wdtFeed();
+    
+    // Add a small delay to ensure we're not in a critical section
+    delay(5);
+    
+    settingsManager->saveSettings();
+    settingsNeedSave = false;
+    
+    // Add another small delay after saving
+    delay(5);
+    
+    Serial.println("Settings saved successfully");
+  }
 }
 
 void AfterburnerWiFiService::onWebSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length) {
+  // Feed watchdog at the start of event handling
+  ESP.wdtFeed();
+  
   switch (type) {
     case WStype_DISCONNECTED:
       Serial.printf("[%u] Disconnected!\n", num);
@@ -79,6 +102,9 @@ void AfterburnerWiFiService::onWebSocketEvent(uint8_t num, WStype_t type, uint8_
         IPAddress ip = webSocket->remoteIP(num);
         Serial.printf("[%u] Connected from %d.%d.%d.%d\n", num, ip[0], ip[1], ip[2], ip[3]);
         clientConnected = true;
+        
+        // Feed watchdog before JSON operations
+        ESP.wdtFeed();
         
         // Send current settings to client
         AfterburnerSettings& settings = settingsManager->getSettings();
@@ -102,6 +128,9 @@ void AfterburnerWiFiService::onWebSocketEvent(uint8_t num, WStype_t type, uint8_
         String jsonString;
         serializeJson(doc, jsonString);
         webSocket->sendTXT(num, jsonString);
+        
+        // Feed watchdog after sending
+        ESP.wdtFeed();
       }
       break;
     case WStype_TEXT:
@@ -119,6 +148,30 @@ void AfterburnerWiFiService::onWebSocketEvent(uint8_t num, WStype_t type, uint8_
             return;
           }
           
+          // Handle JSON commands
+          if (message.startsWith("{")) {
+            StaticJsonDocument<128> doc;
+            DeserializationError error = deserializeJson(doc, message);
+            
+            if (!error) {
+              const char* type = doc["type"];
+                             if (strcmp(type, "command") == 0) {
+                 const char* command = doc["command"];
+                 if (strcmp(command, "start_calibration") == 0) {
+                   Serial.println("Received start_calibration command");
+                   throttleReader->startCalibration();
+                   webSocket->sendTXT(num, "{\"type\":\"response\",\"command\":\"start_calibration\",\"status\":\"started\"}");
+                   return;
+                 } else if (strcmp(command, "reset_calibration") == 0) {
+                   Serial.println("Received reset_calibration command");
+                   throttleReader->resetCalibration();
+                   webSocket->sendTXT(num, "{\"type\":\"response\",\"command\":\"reset_calibration\",\"status\":\"completed\"}");
+                   return;
+                 }
+               }
+            }
+          }
+          
           handleSettingsUpdate(message);
         } else {
           Serial.println("Empty WebSocket message received");
@@ -129,80 +182,213 @@ void AfterburnerWiFiService::onWebSocketEvent(uint8_t num, WStype_t type, uint8_
 }
 
 void AfterburnerWiFiService::handleSettingsUpdate(const String& jsonData) {
+  // Rate limiting: only process settings updates every 200ms (increased for stability)
+  if (millis() - lastSettingsUpdate < 200) {
+    Serial.println("Settings update rate limited - skipping");
+    return;
+  }
+  lastSettingsUpdate = millis();
+  
   Serial.print("Received JSON: ");
   Serial.println(jsonData);
+  Serial.printf("JSON length: %d\n", jsonData.length());
   
+  // Check available memory before processing
+  Serial.printf("Free heap before processing: %d bytes\n", ESP.getFreeHeap());
+  
+  // Add watchdog feed to prevent resets
+  ESP.wdtFeed();
+  
+  // Use smaller JSON document to prevent memory issues
   StaticJsonDocument<512> doc;
   DeserializationError error = deserializeJson(doc, jsonData);
   
   if (error) {
     Serial.print("Failed to parse JSON: ");
     Serial.println(error.c_str());
+    Serial.printf("Error code: %d\n", error.code());
+    ESP.wdtFeed(); // Feed watchdog before returning
     return;
   }
   
-  AfterburnerSettings& settings = settingsManager->getSettings();
+  Serial.println("JSON parsed successfully");
+  Serial.printf("JSON document size: %d bytes\n", doc.memoryUsage());
+  
+  // Get current settings and create a working copy
+  AfterburnerSettings& currentSettings = settingsManager->getSettings();
+  AfterburnerSettings newSettings = currentSettings; // Copy current settings
   bool settingsChanged = false;
   
+  Serial.println("=== Processing Settings ===");
+  Serial.printf("Current settings - Mode: %d, Speed: %d, Brightness: %d, LEDs: %d, Threshold: %d\n",
+                currentSettings.mode, currentSettings.speedMs, currentSettings.brightness, currentSettings.numLeds, currentSettings.abThreshold);
+  Serial.printf("Current colors - Start: [%d,%d,%d], End: [%d,%d,%d]\n",
+                currentSettings.startColor[0], currentSettings.startColor[1], currentSettings.startColor[2],
+                currentSettings.endColor[0], currentSettings.endColor[1], currentSettings.endColor[2]);
+  
+  // Handle mode update
   if (doc.containsKey("mode")) {
-    settings.mode = doc["mode"];
-    settingsChanged = true;
+    Serial.println("Found 'mode' in JSON");
+    int newMode = doc["mode"] | 0; // Force to int
+    Serial.printf("Mode value from JSON: %d\n", newMode);
+    if (newMode >= 0 && newMode <= 2) {  // Valid mode range
+      if (newMode != newSettings.mode) {
+        newSettings.mode = (uint8_t)newMode;
+        settingsChanged = true;
+        Serial.printf("Mode updated to: %d\n", newMode);
+      } else {
+        Serial.println("Mode unchanged");
+      }
+    } else {
+      Serial.printf("Invalid mode value: %d (must be 0-2)\n", newMode);
+    }
+  } else {
+    Serial.println("No 'mode' found in JSON");
   }
   
+  // Handle start color update
   if (doc.containsKey("startColor")) {
+    Serial.println("Found 'startColor' in JSON");
     JsonArray startColorArray = doc["startColor"];
+    Serial.printf("Start color array size: %d\n", startColorArray.size());
     if (startColorArray.size() == 3) {
-      settings.startColor[0] = startColorArray[0];
-      settings.startColor[1] = startColorArray[1];
-      settings.startColor[2] = startColorArray[2];
-      settingsChanged = true;
+      // Get color values and force to int
+      int newR = startColorArray[0] | 0;
+      int newG = startColorArray[1] | 0;
+      int newB = startColorArray[2] | 0;
+      Serial.printf("Start color values from JSON: R=%d, G=%d, B=%d\n", newR, newG, newB);
+        
+                 // Validate color values are in valid range
+         if (newR >= 0 && newR <= 255 && newG >= 0 && newG <= 255 && newB >= 0 && newB <= 255) {
+           if (newR != currentSettings.startColor[0] || newG != currentSettings.startColor[1] || newB != currentSettings.startColor[2]) {
+             newSettings.startColor[0] = (uint8_t)newR;
+             newSettings.startColor[1] = (uint8_t)newG;
+             newSettings.startColor[2] = (uint8_t)newB;
+             settingsChanged = true;
+             Serial.printf("Start color updated to: R=%d, G=%d, B=%d\n", newR, newG, newB);
+           }
+         } else {
+           Serial.printf("Invalid start color values: R=%d, G=%d, B=%d (must be 0-255)\n", newR, newG, newB);
+         }
+             // Color values are automatically converted to int with | 0
+    } else {
+      Serial.printf("Invalid start color array size: %d (expected 3)\n", startColorArray.size());
     }
   }
   
+  // Handle end color update
   if (doc.containsKey("endColor")) {
     JsonArray endColorArray = doc["endColor"];
     if (endColorArray.size() == 3) {
-      settings.endColor[0] = endColorArray[0];
-      settings.endColor[1] = endColorArray[1];
-      settings.endColor[2] = endColorArray[2];
-      settingsChanged = true;
+      // Get color values and force to int
+      int newR = endColorArray[0] | 0;
+      int newG = endColorArray[1] | 0;
+      int newB = endColorArray[2] | 0;
+        
+                 // Validate color values are in valid range
+         if (newR >= 0 && newR <= 255 && newG >= 0 && newG <= 255 && newB >= 0 && newB <= 255) {
+           if (newR != currentSettings.endColor[0] || newG != currentSettings.endColor[1] || newB != currentSettings.endColor[2]) {
+             newSettings.endColor[0] = (uint8_t)newR;
+             newSettings.endColor[1] = (uint8_t)newG;
+             newSettings.endColor[2] = (uint8_t)newB;
+             settingsChanged = true;
+             Serial.printf("End color updated to: R=%d, G=%d, B=%d\n", newR, newG, newB);
+           }
+         } else {
+           Serial.printf("Invalid end color values: R=%d, G=%d, B=%d (must be 0-255)\n", newR, newG, newB);
+         }
+             // Color values are automatically converted to int with | 0
+    } else {
+      Serial.printf("Invalid end color array size: %d (expected 3)\n", endColorArray.size());
     }
   }
   
+  // Handle speed update
   if (doc.containsKey("speedMs")) {
-    settings.speedMs = doc["speedMs"];
-    settingsChanged = true;
+    int newSpeed = doc["speedMs"] | 0; // Force to int
+    if (newSpeed >= 100 && newSpeed <= 5000) {  // Valid speed range
+      if (newSpeed != currentSettings.speedMs) {
+        newSettings.speedMs = (uint16_t)newSpeed;
+        settingsChanged = true;
+        Serial.printf("Speed updated to: %d ms\n", newSpeed);
+      }
+    } else {
+      Serial.printf("Invalid speed value: %d (must be 100-5000)\n", newSpeed);
+    }
   }
   
+  // Handle brightness update
   if (doc.containsKey("brightness")) {
-    settings.brightness = doc["brightness"];
-    settingsChanged = true;
+    int newBrightness = doc["brightness"] | 0; // Force to int
+    if (newBrightness >= 10 && newBrightness <= 255) {  // Valid brightness range
+      if (newBrightness != currentSettings.brightness) {
+        newSettings.brightness = (uint8_t)newBrightness;
+        settingsChanged = true;
+        Serial.printf("Brightness updated to: %d\n", newBrightness);
+      }
+    } else {
+      Serial.printf("Invalid brightness value: %d (must be 10-255)\n", newBrightness);
+    }
   }
   
+  // Handle numLeds update
   if (doc.containsKey("numLeds")) {
-    settings.numLeds = doc["numLeds"];
-    settingsChanged = true;
+    int newNumLeds = doc["numLeds"] | 0; // Force to int
+    if (newNumLeds >= 1 && newNumLeds <= 300) {  // Valid LED count range
+      if (newNumLeds != currentSettings.numLeds) {
+        newSettings.numLeds = (uint16_t)newNumLeds;
+        settingsChanged = true;
+        Serial.printf("Number of LEDs updated to: %d\n", newNumLeds);
+      }
+    } else {
+      Serial.printf("Invalid numLeds value: %d (must be 1-300)\n", newNumLeds);
+    }
   }
   
+  // Handle abThreshold update
   if (doc.containsKey("abThreshold")) {
-    settings.abThreshold = doc["abThreshold"];
-    settingsChanged = true;
+    int newThreshold = doc["abThreshold"] | 0; // Force to int
+    if (newThreshold >= 0 && newThreshold <= 100) {  // Valid threshold range
+      if (newThreshold != currentSettings.abThreshold) {
+        newSettings.abThreshold = (uint8_t)newThreshold;
+        settingsChanged = true;
+        Serial.printf("Afterburner threshold updated to: %d%%\n", newThreshold);
+      }
+    } else {
+      Serial.printf("Invalid abThreshold value: %d (must be 0-100)\n", newThreshold);
+    }
   }
   
+  // Only save if settings actually changed
   if (settingsChanged) {
-    settingsManager->saveSettings();
-    Serial.println("Settings updated via WebSocket");
+    // Copy the new settings back to the original settings object
+    currentSettings = newSettings;
+    
+    Serial.println("=== SETTINGS CHANGED ===");
+    Serial.printf("Final settings - Mode: %d, Speed: %d, Brightness: %d, LEDs: %d, Threshold: %d\n",
+                  currentSettings.mode, currentSettings.speedMs, currentSettings.brightness, currentSettings.numLeds, currentSettings.abThreshold);
+    Serial.printf("Final colors - Start: [%d,%d,%d], End: [%d,%d,%d]\n",
+                  currentSettings.startColor[0], currentSettings.startColor[1], currentSettings.startColor[2],
+                  currentSettings.endColor[0], currentSettings.endColor[1], currentSettings.endColor[2]);
+    
+    Serial.println("Settings changed, will save to EEPROM in main loop");
+    settingsNeedSave = true;
   } else {
     Serial.println("No settings changed");
   }
+  
+  // Final watchdog feed
+  ESP.wdtFeed();
 }
 
 void AfterburnerWiFiService::updateStatus(float throttle, uint8_t mode) {
   lastThrottle = throttle;
-  // Send status notification every 200ms
-  if (millis() - lastStatusUpdate > 200) {
+  // Send status notification every 500ms (reduced frequency to prevent memory pressure)
+  if (millis() - lastStatusUpdate > 500) {
+    ESP.wdtFeed(); // Feed watchdog before status update
     sendStatusToClient();
     lastStatusUpdate = millis();
+    ESP.wdtFeed(); // Feed watchdog after status update
   }
 }
 
@@ -212,10 +398,28 @@ void AfterburnerWiFiService::sendStatusToClient() {
   // Get current settings for mode
   AfterburnerSettings& settings = settingsManager->getSettings();
   
-  StaticJsonDocument<128> doc;
+  StaticJsonDocument<256> doc;
   doc["type"] = "status";
   doc["thr"] = round(lastThrottle * 100) / 100.0;
   doc["mode"] = settings.mode;
+  
+  // Add throttle calibration data
+  doc["signalValid"] = throttleReader->isSignalValid();
+  doc["pulseCount"] = throttleReader->getPulseCount();
+  doc["invalidPulseCount"] = throttleReader->getInvalidPulseCount();
+  doc["calibrating"] = throttleReader->isCalibrating();
+  doc["calibrationComplete"] = throttleReader->isCalibrationComplete();
+  
+  if (throttleReader->isCalibrationComplete()) {
+    doc["minPulse"] = throttleReader->getMinPulse();
+    doc["maxPulse"] = throttleReader->getMaxPulse();
+    doc["pulseRange"] = throttleReader->getMaxPulse() - throttleReader->getMinPulse();
+  } else {
+    // Use default values when calibration is not complete
+    doc["minPulse"] = PWM_MIN_PULSE;
+    doc["maxPulse"] = PWM_MAX_PULSE;
+    doc["pulseRange"] = PWM_MAX_PULSE - PWM_MIN_PULSE;
+  }
   
   String jsonString;
   serializeJson(doc, jsonString);

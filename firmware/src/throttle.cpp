@@ -1,4 +1,5 @@
 #include "throttle.h"
+#include <EEPROM.h>
 
 ThrottleReader::ThrottleReader() {
   smoothedThrottle = 0.0f;
@@ -21,6 +22,9 @@ ThrottleReader::ThrottleReader() {
 
 void ThrottleReader::begin() {
   pinMode(THR_PIN, INPUT);
+  
+  // Load calibration data from EEPROM
+  loadCalibration();
 }
 
 float ThrottleReader::readThrottle() {
@@ -114,8 +118,8 @@ float ThrottleReader::readPWM() {
 
 float ThrottleReader::mapPWMToThrottle(unsigned long pulseWidth) {
   // Use calibrated values if available, otherwise use defaults
-  unsigned long minPulse = calibrationComplete ? this->minPulse : 900;
-  unsigned long maxPulse = calibrationComplete ? this->maxPulse : 2100;
+  unsigned long minPulse = calibrationComplete ? this->minPulse : PWM_MIN_PULSE;
+  unsigned long maxPulse = calibrationComplete ? this->maxPulse : PWM_MAX_PULSE;
   
   // Constrain pulse width to valid range
   if (pulseWidth < minPulse) pulseWidth = minPulse;
@@ -153,6 +157,7 @@ void ThrottleReader::startCalibration() {
   Serial.println("=== THROTTLE CALIBRATION STARTED ===");
   Serial.println("Move your throttle stick from MIN to MAX several times");
   Serial.println("Calibration will complete automatically after 100 samples");
+  Serial.println("Make sure to move the throttle to both extremes!");
 }
 
 void ThrottleReader::updateCalibration(unsigned long pulseWidth) {
@@ -174,15 +179,117 @@ void ThrottleReader::updateCalibration(unsigned long pulseWidth) {
                  calibrationSamples, minPulse, maxPulse);
   }
   
-  // Check if calibration is complete
+  // Check if calibration is complete and valid
   if (calibrationSamples >= CALIBRATION_SAMPLES) {
-    calibrationMode = false;
-    calibrationComplete = true;
+    // Validate that we have a reasonable range (at least 200us difference)
+    if (maxPulse > minPulse && (maxPulse - minPulse) >= 200) {
+      calibrationMode = false;
+      calibrationComplete = true;
+      
+      Serial.println("=== THROTTLE CALIBRATION COMPLETE ===");
+      Serial.printf("Min Pulse: %lu us\n", minPulse);
+      Serial.printf("Max Pulse: %lu us\n", maxPulse);
+      Serial.printf("Range: %lu us\n", maxPulse - minPulse);
+      
+      // Save calibration to EEPROM
+      delay(10); // Prevent watchdog reset
+      saveCalibration();
+      delay(10); // Prevent watchdog reset
+      Serial.println("Calibration saved to EEPROM!");
+    } else {
+      Serial.println("=== CALIBRATION FAILED - INSUFFICIENT RANGE ===");
+      Serial.printf("Min: %lu us, Max: %lu us, Range: %lu us\n", minPulse, maxPulse, maxPulse - minPulse);
+      Serial.println("Please move throttle to both extremes and try again");
+      
+      // Reset calibration and continue
+      calibrationSamples = 0;
+      minPulse = 0xFFFFFFFF;
+      maxPulse = 0;
+    }
+  }
+}
+
+void ThrottleReader::resetCalibration() {
+  calibrationMode = false;
+  calibrationComplete = false;
+  calibrationSamples = 0;
+  minPulse = 0;
+  maxPulse = 0;
+  
+  // Clear calibration data from EEPROM
+  int addr = 100;
+  for (int i = 0; i < 20; i++) {
+    EEPROM.write(addr + i, 0);
+  }
+  EEPROM.commit();
+  
+  Serial.println("=== THROTTLE CALIBRATION RESET ===");
+  Serial.println("Using default values (900-2100 μs)");
+}
+
+void ThrottleReader::saveCalibration() {
+  // Save calibration data to EEPROM at address 100 (after settings)
+  int addr = 100;
+  
+  // Write calibration magic number
+  uint32_t magic = 0xCA1B1234;
+  for (int i = 0; i < 4; i++) {
+    EEPROM.write(addr + i, (magic >> (i * 8)) & 0xFF);
+  }
+  addr += 4;
+  
+  // Write calibration data
+  EEPROM.write(addr++, calibrationComplete ? 1 : 0);
+  EEPROM.write(addr++, (minPulse >> 0) & 0xFF);
+  EEPROM.write(addr++, (minPulse >> 8) & 0xFF);
+  EEPROM.write(addr++, (minPulse >> 16) & 0xFF);
+  EEPROM.write(addr++, (minPulse >> 24) & 0xFF);
+  EEPROM.write(addr++, (maxPulse >> 0) & 0xFF);
+  EEPROM.write(addr++, (maxPulse >> 8) & 0xFF);
+  EEPROM.write(addr++, (maxPulse >> 16) & 0xFF);
+  EEPROM.write(addr++, (maxPulse >> 24) & 0xFF);
+  
+  EEPROM.commit();
+  Serial.println("Calibration data saved to EEPROM");
+}
+
+void ThrottleReader::loadCalibration() {
+  // Load calibration data from EEPROM at address 100
+  int addr = 100;
+  
+  // Check calibration magic number
+  uint32_t magic = 0;
+  for (int i = 0; i < 4; i++) {
+    magic |= ((uint32_t)EEPROM.read(addr + i) << (i * 8));
+  }
+  
+  if (magic == 0xCA1B1234) {
+    addr += 4;
     
-    Serial.println("=== THROTTLE CALIBRATION COMPLETE ===");
-    Serial.printf("Min Pulse: %lu us\n", minPulse);
-    Serial.printf("Max Pulse: %lu us\n", maxPulse);
-    Serial.printf("Range: %lu us\n", maxPulse - minPulse);
-    Serial.println("Calibration saved!");
+    // Load calibration data
+    calibrationComplete = EEPROM.read(addr++) == 1;
+    minPulse = 0;
+    minPulse |= EEPROM.read(addr++);
+    minPulse |= ((uint32_t)EEPROM.read(addr++) << 8);
+    minPulse |= ((uint32_t)EEPROM.read(addr++) << 16);
+    minPulse |= ((uint32_t)EEPROM.read(addr++) << 24);
+    maxPulse = 0;
+    maxPulse |= EEPROM.read(addr++);
+    maxPulse |= ((uint32_t)EEPROM.read(addr++) << 8);
+    maxPulse |= ((uint32_t)EEPROM.read(addr++) << 16);
+    maxPulse |= ((uint32_t)EEPROM.read(addr++) << 24);
+    
+    Serial.println("Calibration data loaded from EEPROM");
+    Serial.printf("Calibration complete: %s\n", calibrationComplete ? "Yes" : "No");
+    if (calibrationComplete) {
+      Serial.printf("Min Pulse: %lu us\n", minPulse);
+      Serial.printf("Max Pulse: %lu us\n", maxPulse);
+      Serial.printf("Range: %lu us\n", maxPulse - minPulse);
+    }
+  } else {
+    Serial.println("No valid calibration data found in EEPROM");
+    calibrationComplete = false;
+    minPulse = 0;
+    maxPulse = 0;
   }
 }

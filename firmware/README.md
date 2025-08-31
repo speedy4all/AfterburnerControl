@@ -12,6 +12,7 @@ A sophisticated LED afterburner controller for RC models using ESP8266 NodeMCU V
 - **Multiple Effect Modes**: Static, Pulse, and Afterburner modes
 - **WebSocket Communication**: Real-time bidirectional communication
 - **EEPROM Settings Storage**: Persistent configuration across reboots
+- **🛡️ Crash Prevention**: Optimized to prevent controller restarts during settings updates
 
 ### Hardware Features
 
@@ -142,12 +143,21 @@ Calibration saved!
 
 ### Mobile App Controls
 
+**🎯 Simplified Interface**: The app now uses a "Push All Settings" approach for maximum reliability:
+
 - **Mode Selection**: Choose between Static, Pulse, and Afterburner
-- **Color Control**: Set start and end colors (RGB)
+- **Color Control**: Set start and end colors (RGB) with visual color picker
 - **Brightness**: Adjust LED brightness (10-255)
 - **Speed**: Control animation speed (100-5000ms)
 - **LED Count**: Set number of LEDs (1-300)
 - **Afterburner Threshold**: Set afterburner activation point (0-100%)
+- **🚀 Push All Settings**: Send all changes at once to prevent controller crashes
+
+**💡 How to Use**:
+
+1. Adjust any settings using the intuitive controls
+2. Tap "🚀 Push All Settings to Device" to send all changes
+3. The device will update immediately without crashes
 
 ## 🔧 Configuration
 
@@ -172,6 +182,14 @@ Calibration saved!
 ```cpp
 #define CALIBRATION_SAMPLES 100  // Number of samples for calibration
 #define PWM_TIMEOUT 50000        // PWM read timeout (50ms)
+```
+
+### Reliability Settings
+
+```cpp
+#define SETTINGS_UPDATE_RATE_LIMIT 200  // Minimum time between settings updates (ms)
+#define JSON_BUFFER_SIZE 512            // JSON parsing buffer size
+#define EEPROM_SAVE_DELAY 5             // Delay before/after EEPROM saves (ms)
 ```
 
 ## 🐛 Troubleshooting
@@ -218,6 +236,15 @@ Calibration saved!
 - **Solution**: Verify firewall settings
 - **Solution**: Restart the ESP8266
 
+### Controller Crashes
+
+**Problem**: Controller restarts when changing settings
+
+- **Solution**: Use "Push All Settings" instead of individual controls
+- **Solution**: Ensure you're connected to the Afterburner_AP WiFi network
+- **Solution**: Check that the ESP8266 is powered properly
+- **Solution**: If crashes persist, try resetting the ESP8266 device
+
 ## 📊 Debug Output
 
 ### Serial Monitor Output
@@ -233,9 +260,6 @@ Showing green pattern...
 Showing blue pattern...
 Clearing LEDs...
 Hardware test complete
-OLED Display initialization skipped
-Forced test colors: Red -> Green
-Demo mode disabled - testing real PWM signal
 Starting automatic throttle calibration...
 === THROTTLE CALIBRATION STARTED ===
 Move your throttle stick from MIN to MAX several times
@@ -247,6 +271,7 @@ Min Pulse: 988 us
 Max Pulse: 2011 us
 Range: 1023 us
 Calibration saved!
+WiFi AP started. SSID: Afterburner_AP IP Address: 192.168.4.1
 ESP8266 Afterburner Ready!
 Throttle: 0.07, Mode: 1, LEDs: 19, Calibrated: 988-2011 us
 PWM: 988 us -> 0.07 throttle
@@ -254,32 +279,69 @@ LED Colors - Start: [255,0,0], End: [0,255,0], Throttle: 0.07
 First LED Color: R=30, G=0, B=0
 ```
 
-## 🔄 Recent Changes (v2.0)
+### Settings Update Debug
 
-### Added Features
+```
+WebSocket text received: {"startColor":[255,165,0],"endColor":[255,0,255],"mode":2,"speedMs":1500,"brightness":200,"numLeds":45,"abThreshold":80}
+JSON length: 89
+JSON parsed successfully
+JSON document size: 256 bytes
+=== Processing Settings ===
+Current settings - Mode: 1, Speed: 1200, Brightness: 200, LEDs: 45, Threshold: 80
+Current colors - Start: [255,0,0], End: [0,0,255]
+=== SETTINGS CHANGED ===
+Final settings - Mode: 2, Speed: 1500, Brightness: 200, LEDs: 45, Threshold: 80
+Final colors - Start: [255,165,0], End: [255,0,255]
+Settings to save - Mode: 2, Speed: 1500, Brightness: 200, LEDs: 45, Threshold: 80
+Saving settings to EEPROM in main loop...
+Settings saved successfully
+```
 
-- ✅ **Automatic Throttle Calibration**: Works with any transmitter
-- ✅ **Enhanced PWM Detection**: Improved signal validation
-- ✅ **Real-time Debug Output**: Comprehensive serial monitoring
-- ✅ **Dynamic Color Mapping**: Uses calibrated PWM range
-- ✅ **Improved Error Handling**: Better failsafe mechanisms
+## 🔄 Recent Changes (v2.1.0)
 
-### Removed Features
+### ✅ Added Features
 
-- ❌ **OLED Display Support**: Removed to reduce complexity
-- ❌ **Manual PWM Configuration**: Replaced with auto-calibration
-- ❌ **Excessive Debug Output**: Streamlined for clarity
+- **🛡️ Crash Prevention**: Multiple layers of validation and error handling
+- **Atomic Settings Updates**: Complete settings replacement instead of partial updates
+- **Enhanced Validation**: Comprehensive input validation for all settings
+- **Deferred EEPROM Saves**: Moved saves to main loop to prevent watchdog resets
+- **Rate Limiting**: Prevents overwhelming the controller with rapid updates
+- **Memory Optimization**: Reduced JSON buffer sizes and improved memory management
 
-### Technical Improvements
+### ❌ Removed Features
 
-- 🔧 **Faster Throttle Response**: Increased smoothing factor
-- 🔧 **Better Signal Validation**: Improved PWM range detection
-- 🔧 **Enhanced LED Effects**: More responsive color transitions
-- 🔧 **Optimized Memory Usage**: Reduced RAM footprint
+- **OLED Display Support**: Removed to reduce complexity
+- **Manual PWM Configuration**: Replaced with auto-calibration
+- **Individual Setting Updates**: Now only accepts complete settings objects
+- **Excessive Debug Output**: Streamlined for clarity
+
+### 🔧 Technical Improvements
+
+- **Watchdog Timer Management**: Proper feeding during critical operations
+- **Optimized WebSocket Communication**: Reduced message frequency and improved reliability
+- **Better Error Handling**: Robust connection and communication error handling
+- **Enhanced JSON Parsing**: Improved type conversion and validation
+- **Streamlined EEPROM Operations**: More efficient settings storage
+
+### 🛡️ Reliability Improvements
+
+- **Crash Prevention**: Multiple layers of validation and error handling
+- **Watchdog Timer Management**: Proper feeding during critical operations
+- **Rate Limiting**: Prevents overwhelming the controller with rapid updates
+- **Memory Optimization**: Reduced memory fragmentation and improved stability
+- **Atomic Updates**: Complete settings replacement ensures consistency
 
 ## 📝 Version History
 
-### v2.0 (Current) - NodeMCU V3 Edition
+### v2.1.0 (Current) - Reliability Edition
+
+- **Crash Prevention**: Optimized to prevent controller restarts
+- **Simplified Communication**: Only accepts complete settings updates
+- **Enhanced Validation**: Comprehensive input validation
+- **Memory Optimization**: Improved memory management
+- **Deferred EEPROM Saves**: Moved saves to main loop
+
+### v2.0 (Previous) - NodeMCU V3 Edition
 
 - Automatic throttle calibration
 - Enhanced debugging and monitoring
@@ -287,7 +349,7 @@ First LED Color: R=30, G=0, B=0
 - Removed OLED display dependencies
 - Optimized for NodeMCU V3
 
-### v1.0 (Previous)
+### v1.0 (Original)
 
 - Basic PWM throttle input
 - Manual configuration required
@@ -315,4 +377,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**NodeMCU V3 Edition** - Optimized for ESP8266 NodeMCU V3 with automatic calibration and enhanced features.
+**NodeMCU V3 Edition v2.1.0** - The most reliable ESP8266 afterburner controller with crash prevention and optimized communication! 🛩️

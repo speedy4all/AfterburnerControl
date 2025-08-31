@@ -10,8 +10,9 @@ A React Native application for controlling ESP8266-based WS2812 LED afterburner 
 - **Mode Selection**: Choose from Static, Pulse, and Afterburner animation modes
 - **Parameter Control**: Adjust speed, brightness, number of LEDs, and afterburner threshold
 - **Status Monitoring**: Real-time display of throttle position and current mode
-- **Preset Management**: Save settings to device memory
-- **Automatic Reconnection**: Robust connection handling with automatic reconnection
+- **Throttle Calibration**: Start and reset throttle calibration
+- **Reliable Communication**: Optimized to prevent controller crashes
+- **Simplified Interface**: Clean, intuitive design focused on reliability
 
 ## Hardware Requirements
 
@@ -80,6 +81,10 @@ npx react-native run-ios
 
 ## Usage
 
+### 🎯 Simplified Interface
+
+The app now uses a **"Push All Settings"** approach for maximum reliability:
+
 1. **Connect to Device**:
 
    - Connect your mobile device to the ESP8266's WiFi network (`Afterburner_AP`)
@@ -94,11 +99,24 @@ npx react-native run-ios
    - **Number of LEDs**: Configure LED count (1-100 range, default: 45)
    - **Afterburner Threshold**: Set throttle percentage for afterburner effect (0-100% range)
 
-3. **Send Settings**: Use individual "Send" buttons or "Push All Settings" to apply changes
+3. **🚀 Push All Settings**: Tap the prominent green button to send all changes at once
 
-4. **Save Preset**: Save current settings to device memory for persistence
+   - This prevents controller crashes that can occur with individual setting updates
+   - All settings are sent together in a single, reliable operation
 
-5. **Monitor Status**: View real-time throttle position and current mode
+4. **Throttle Calibration**:
+
+   - **Start Calibration**: Begin automatic throttle calibration
+   - **Reset to Default Values**: Use default PWM range (900-2100 μs)
+
+5. **Monitor Status**: View real-time throttle position, mode, and calibration status
+
+### 💡 Key Benefits
+
+- **No More Crashes**: Eliminates controller restarts when changing settings
+- **Intuitive Design**: Clear visual feedback and easy-to-use controls
+- **Reliable Communication**: Optimized WebSocket protocol for stability
+- **Visual Color Picker**: Easy color selection with predefined palettes
 
 ## WebSocket Protocol
 
@@ -111,7 +129,7 @@ The app communicates with the ESP8266 using WebSocket over WiFi with the followi
 
 ### Message Format
 
-Settings are sent as JSON objects:
+Settings are sent as complete JSON objects (no partial updates):
 
 ```json
 {
@@ -131,7 +149,23 @@ Status updates are received as JSON:
 {
   "type": "status",
   "thr": 0.75,
-  "mode": 2
+  "mode": 2,
+  "signalValid": true,
+  "pulseCount": 150,
+  "calibrating": false,
+  "calibrationComplete": true,
+  "minPulse": 988,
+  "maxPulse": 2011,
+  "pulseRange": 1023
+}
+```
+
+Commands are sent as JSON:
+
+```json
+{
+  "type": "command",
+  "command": "start_calibration"
 }
 ```
 
@@ -183,10 +217,41 @@ src/
 - Verify you're connected to the correct WiFi network
 - Check that the device is within WiFi range
 
+### Controller Crashes
+
+- **Always use "Push All Settings"** instead of individual controls
+- Ensure you're connected to the Afterburner_AP WiFi network
+- Check that the ESP8266 is powered properly
+- If crashes persist, try resetting the ESP8266 device
+
 ### Build Issues
 
 - Clean and rebuild: `npx react-native clean`
 - Reset Metro cache: `npx react-native start --reset-cache`
+
+## Recent Changes (v2.1.0)
+
+### ✅ Improvements
+
+- **Simplified Interface**: Removed individual setting controls for reliability
+- **"Push All Settings" Approach**: Send complete settings at once to prevent crashes
+- **Enhanced Color Picker**: Visual RGB color selection with predefined palettes
+- **Improved Error Handling**: Better validation and crash prevention
+- **Streamlined UI**: Cleaner, more intuitive interface
+- **Throttle Calibration UI**: Visual feedback for calibration status
+
+### ❌ Removed Features
+
+- **Individual Setting Controls**: Removed to prevent controller crashes
+- **Test Ping/Connection**: Removed debugging features for cleaner interface
+- **Individual Send Buttons**: Replaced with single "Push All Settings" button
+
+### 🔧 Technical Improvements
+
+- **Atomic Settings Updates**: Complete settings replacement instead of partial updates
+- **Enhanced Validation**: Comprehensive input validation
+- **Optimized WebSocket Communication**: Reduced message frequency and improved reliability
+- **Better Error Handling**: Robust connection and communication error handling
 
 ## Contributing
 

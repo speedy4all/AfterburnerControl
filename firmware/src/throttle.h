@@ -43,10 +43,15 @@ public:
   
   // Calibration functions
   void startCalibration();
+  void resetCalibration();
   bool isCalibrating() { return calibrationMode; }
   bool isCalibrationComplete() { return calibrationComplete; }
   unsigned long getMinPulse() { return minPulse; }
   unsigned long getMaxPulse() { return maxPulse; }
+  
+  // Calibration persistence
+  void saveCalibration();
+  void loadCalibration();
   
 private:
   float readPWM();

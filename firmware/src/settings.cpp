@@ -53,13 +53,16 @@ void SettingsManager::loadSettings() {
 }
 
 void SettingsManager::saveSettings() {
+  // Feed watchdog before starting EEPROM operations
+  ESP.wdtFeed();
+  
   // Write magic number
   uint32_t magic = 0xAB123456;
   for (int i = 0; i < 4; i++) {
     EEPROM.write(i, (magic >> (i * 8)) & 0xFF);
   }
   
-  // Write settings
+  // Write settings in one batch
   int addr = 4;
   EEPROM.write(addr++, settings.mode);
   EEPROM.write(addr++, settings.startColor[0]);
@@ -75,8 +78,15 @@ void SettingsManager::saveSettings() {
   EEPROM.write(addr++, (settings.numLeds >> 8) & 0xFF);
   EEPROM.write(addr++, settings.abThreshold);
   
+  // Feed watchdog before commit
+  ESP.wdtFeed();
+  
   // Commit to EEPROM
   EEPROM.commit();
+  
+  // Feed watchdog after commit
+  ESP.wdtFeed();
+  
   Serial.println("Settings saved to EEPROM");
 }
 
@@ -86,5 +96,6 @@ AfterburnerSettings& SettingsManager::getSettings() {
 
 void SettingsManager::updateSettings(const AfterburnerSettings& newSettings) {
   settings = newSettings;
-  saveSettings();
+  // Don't save immediately - let the deferred save handle it
+  // saveSettings(); // Removed to prevent reboots during WebSocket events
 }

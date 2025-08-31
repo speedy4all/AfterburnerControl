@@ -6,6 +6,7 @@
 #include <WebSocketsServer.h>
 #include <ArduinoJson.h>
 #include "settings.h"
+#include "throttle.h"
 
 // WiFi configuration
 #define WIFI_SSID "Afterburner_AP"
@@ -18,6 +19,7 @@ private:
   ESP8266WebServer* webServer;
   WebSocketsServer* webSocket;
   SettingsManager* settingsManager;
+  ThrottleReader* throttleReader;
   
   // Status notification timer
   unsigned long lastStatusUpdate;
@@ -28,8 +30,14 @@ private:
   // Last throttle value for status updates
   float lastThrottle;
   
+  // Rate limiting for settings updates
+  unsigned long lastSettingsUpdate;
+  
+  // Deferred save flag
+  bool settingsNeedSave;
+  
 public:
-  AfterburnerWiFiService(SettingsManager* settings);
+  AfterburnerWiFiService(SettingsManager* settings, ThrottleReader* throttle);
   void begin();
   void updateStatus(float throttle, uint8_t mode);
   bool isConnected();
