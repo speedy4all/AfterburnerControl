@@ -13,39 +13,71 @@ SettingsManager::SettingsManager() {
   settings.brightness = DEFAULT_BRIGHTNESS;
   settings.numLeds = DEFAULT_NUM_LEDS;
   settings.abThreshold = DEFAULT_AB_THRESHOLD;
+  settingsLoaded = false;
 }
 
 void SettingsManager::begin() {
-  preferences.begin("afterburner", false);
+  EEPROM.begin(512); // Initialize EEPROM with 512 bytes
   loadSettings();
 }
 
 void SettingsManager::loadSettings() {
-  settings.mode = preferences.getUChar("mode", DEFAULT_MODE);
-  settings.startColor[0] = preferences.getUChar("startR", DEFAULT_START_COLOR_R);
-  settings.startColor[1] = preferences.getUChar("startG", DEFAULT_START_COLOR_G);
-  settings.startColor[2] = preferences.getUChar("startB", DEFAULT_START_COLOR_B);
-  settings.endColor[0] = preferences.getUChar("endR", DEFAULT_END_COLOR_R);
-  settings.endColor[1] = preferences.getUChar("endG", DEFAULT_END_COLOR_G);
-  settings.endColor[2] = preferences.getUChar("endB", DEFAULT_END_COLOR_B);
-  settings.speedMs = preferences.getUShort("speed", DEFAULT_SPEED_MS);
-  settings.brightness = preferences.getUChar("bright", DEFAULT_BRIGHTNESS);
-  settings.numLeds = preferences.getUShort("numLeds", DEFAULT_NUM_LEDS);
-  settings.abThreshold = preferences.getUChar("abThresh", DEFAULT_AB_THRESHOLD);
+  if (settingsLoaded) return;
+  
+  // Check if settings are valid (magic number)
+  uint32_t magic = 0;
+  for (int i = 0; i < 4; i++) {
+    magic |= ((uint32_t)EEPROM.read(i) << (i * 8));
+  }
+  if (magic == 0xAB123456) {
+    // Settings are valid, load them
+    int addr = 4;
+    settings.mode = EEPROM.read(addr++);
+    settings.startColor[0] = EEPROM.read(addr++);
+    settings.startColor[1] = EEPROM.read(addr++);
+    settings.startColor[2] = EEPROM.read(addr++);
+    settings.endColor[0] = EEPROM.read(addr++);
+    settings.endColor[1] = EEPROM.read(addr++);
+    settings.endColor[2] = EEPROM.read(addr++);
+    settings.speedMs = (EEPROM.read(addr) | (EEPROM.read(addr + 1) << 8)); addr += 2;
+    settings.brightness = EEPROM.read(addr++);
+    settings.numLeds = (EEPROM.read(addr) | (EEPROM.read(addr + 1) << 8)); addr += 2;
+    settings.abThreshold = EEPROM.read(addr++);
+    Serial.println("Settings loaded from EEPROM");
+  } else {
+    // No valid settings, use defaults
+    Serial.println("No valid settings found, using defaults");
+    saveSettings(); // Save defaults to EEPROM
+  }
+  settingsLoaded = true;
 }
 
 void SettingsManager::saveSettings() {
-  preferences.putUChar("mode", settings.mode);
-  preferences.putUChar("startR", settings.startColor[0]);
-  preferences.putUChar("startG", settings.startColor[1]);
-  preferences.putUChar("startB", settings.startColor[2]);
-  preferences.putUChar("endR", settings.endColor[0]);
-  preferences.putUChar("endG", settings.endColor[1]);
-  preferences.putUChar("endB", settings.endColor[2]);
-  preferences.putUShort("speed", settings.speedMs);
-  preferences.putUChar("bright", settings.brightness);
-  preferences.putUShort("numLeds", settings.numLeds);
-  preferences.putUChar("abThresh", settings.abThreshold);
+  // Write magic number
+  uint32_t magic = 0xAB123456;
+  for (int i = 0; i < 4; i++) {
+    EEPROM.write(i, (magic >> (i * 8)) & 0xFF);
+  }
+  
+  // Write settings
+  int addr = 4;
+  EEPROM.write(addr++, settings.mode);
+  EEPROM.write(addr++, settings.startColor[0]);
+  EEPROM.write(addr++, settings.startColor[1]);
+  EEPROM.write(addr++, settings.startColor[2]);
+  EEPROM.write(addr++, settings.endColor[0]);
+  EEPROM.write(addr++, settings.endColor[1]);
+  EEPROM.write(addr++, settings.endColor[2]);
+  EEPROM.write(addr++, settings.speedMs & 0xFF);
+  EEPROM.write(addr++, (settings.speedMs >> 8) & 0xFF);
+  EEPROM.write(addr++, settings.brightness);
+  EEPROM.write(addr++, settings.numLeds & 0xFF);
+  EEPROM.write(addr++, (settings.numLeds >> 8) & 0xFF);
+  EEPROM.write(addr++, settings.abThreshold);
+  
+  // Commit to EEPROM
+  EEPROM.commit();
+  Serial.println("Settings saved to EEPROM");
 }
 
 AfterburnerSettings& SettingsManager::getSettings() {

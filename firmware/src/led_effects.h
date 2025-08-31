@@ -4,8 +4,8 @@
 #include <FastLED.h>
 #include "settings.h"
 
-// Pin definitions
-#define LED_PIN 18
+// Pin definitions for ESP8266 NodeMCU V3
+#define LED_PIN 12  // D6 - GPIO12
 
 class LEDEffects {
 private:

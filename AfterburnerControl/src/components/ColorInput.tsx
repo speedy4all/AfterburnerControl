@@ -12,7 +12,7 @@ import Slider from '@react-native-community/slider';
 
 interface ColorInputProps {
   label: string;
-  color: { r: number; g: number; b: number };
+  color: { r: number; g: number; b: number } | [number, number, number];
   onColorChange: (color: { r: number; g: number; b: number }) => void;
   onSend?: () => void;
 }
@@ -25,6 +25,11 @@ export const ColorInput: React.FC<ColorInputProps> = ({
 }) => {
   const [showColorPicker, setShowColorPicker] = useState(false);
 
+  // Convert color to standard format
+  const normalizedColor = Array.isArray(color) 
+    ? { r: color[0] || 0, g: color[1] || 0, b: color[2] || 0 }
+    : { r: color.r || 0, g: color.g || 0, b: color.b || 0 };
+
   const handleColorChange = (newColor: { r: number; g: number; b: number }) => {
     onColorChange(newColor);
   };
@@ -36,10 +41,10 @@ export const ColorInput: React.FC<ColorInputProps> = ({
   };
 
   const colorStyle = {
-    backgroundColor: `rgb(${color.r}, ${color.g}, ${color.b})`,
+    backgroundColor: `rgb(${normalizedColor.r}, ${normalizedColor.g}, ${normalizedColor.b})`,
   };
 
-  const colorHex = `#${color.r.toString(16).padStart(2, '0')}${color.g.toString(16).padStart(2, '0')}${color.b.toString(16).padStart(2, '0')}`;
+  const colorHex = `#${normalizedColor.r.toString(16).padStart(2, '0')}${normalizedColor.g.toString(16).padStart(2, '0')}${normalizedColor.b.toString(16).padStart(2, '0')}`;
 
   // Predefined color palette
   const predefinedColors = [
@@ -70,7 +75,7 @@ export const ColorInput: React.FC<ColorInputProps> = ({
       
       <View style={styles.infoRow}>
         <Text style={styles.colorInfo}>
-          RGB({color.r}, {color.g}, {color.b})
+          RGB({normalizedColor.r}, {normalizedColor.g}, {normalizedColor.b})
         </Text>
         <Text style={styles.colorInfo}>{colorHex}</Text>
       </View>
@@ -119,39 +124,39 @@ export const ColorInput: React.FC<ColorInputProps> = ({
               <Text style={styles.sectionTitle}>Custom RGB</Text>
               
               <View style={styles.sliderContainer}>
-                <Text style={styles.sliderLabel}>Red: {color.r} (0-255)</Text>
+                <Text style={styles.sliderLabel}>Red: {normalizedColor.r} (0-255)</Text>
                 <Slider
                   style={styles.slider}
                   minimumValue={0}
                   maximumValue={255}
-                  value={color.r}
-                  onValueChange={(value) => handleColorChange({ ...color, r: Math.round(value) })}
+                  value={normalizedColor.r}
+                  onValueChange={(value) => handleColorChange({ ...normalizedColor, r: Math.round(value) })}
                   minimumTrackTintColor="#FF0000"
                   maximumTrackTintColor="#CCCCCC"
                 />
               </View>
 
               <View style={styles.sliderContainer}>
-                <Text style={styles.sliderLabel}>Green: {color.g} (0-255)</Text>
+                <Text style={styles.sliderLabel}>Green: {normalizedColor.g} (0-255)</Text>
                 <Slider
                   style={styles.slider}
                   minimumValue={0}
                   maximumValue={255}
-                  value={color.g}
-                  onValueChange={(value) => handleColorChange({ ...color, g: Math.round(value) })}
+                  value={normalizedColor.g}
+                  onValueChange={(value) => handleColorChange({ ...normalizedColor, g: Math.round(value) })}
                   minimumTrackTintColor="#00FF00"
                   maximumTrackTintColor="#CCCCCC"
                 />
               </View>
 
               <View style={styles.sliderContainer}>
-                <Text style={styles.sliderLabel}>Blue: {color.b} (0-255)</Text>
+                <Text style={styles.sliderLabel}>Blue: {normalizedColor.b} (0-255)</Text>
                 <Slider
                   style={styles.slider}
                   minimumValue={0}
                   maximumValue={255}
-                  value={color.b}
-                  onValueChange={(value) => handleColorChange({ ...color, b: Math.round(value) })}
+                  value={normalizedColor.b}
+                  onValueChange={(value) => handleColorChange({ ...normalizedColor, b: Math.round(value) })}
                   minimumTrackTintColor="#0000FF"
                   maximumTrackTintColor="#CCCCCC"
                 />
@@ -162,7 +167,7 @@ export const ColorInput: React.FC<ColorInputProps> = ({
                 <Text style={styles.sectionTitle}>Current Color</Text>
                 <View style={[styles.currentColorPreview, colorStyle]} />
                 <Text style={styles.colorInfo}>
-                  RGB({color.r}, {color.g}, {color.b})
+                  RGB({normalizedColor.r}, {normalizedColor.g}, {normalizedColor.b})
                 </Text>
                 <Text style={styles.colorInfo}>{colorHex}</Text>
               </View>

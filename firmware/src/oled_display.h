@@ -29,7 +29,7 @@ public:
   OLEDDisplay();
   void begin();
   void begin(uint8_t buttonPin); // Overloaded with button pin
-  void update(const AfterburnerSettings& settings, float throttle, bool bleConnected);
+  void update(const AfterburnerSettings& settings, float throttle, bool wifiConnected);
   void setUpdateInterval(unsigned long interval);
   void enable(bool enabled);
   void nextPage();
@@ -39,12 +39,12 @@ public:
   void handleButton(); // Handle button press for navigation
   
 private:
-  void drawMainPage(const AfterburnerSettings& settings, float throttle, bool bleConnected);
+  void drawMainPage(const AfterburnerSettings& settings, float throttle, bool wifiConnected);
   void drawSettingsPage(const AfterburnerSettings& settings);
-  void drawStatusPage(const AfterburnerSettings& settings, float throttle, bool bleConnected);
+  void drawStatusPage(const AfterburnerSettings& settings, float throttle, bool wifiConnected);
   void drawThrottleBar(float throttle);
   void drawModeIndicator(uint8_t mode);
-  void drawConnectionStatus(bool bleConnected);
+  void drawConnectionStatus(bool wifiConnected);
   void drawColorPreview(const uint8_t* color);
   void formatThrottle(float throttle, char* buffer);
   void formatSpeed(uint16_t speedMs, char* buffer);

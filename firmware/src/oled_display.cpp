@@ -2,8 +2,8 @@
 #include <Wire.h>
 
 OLEDDisplay::OLEDDisplay() {
-  // Initialize display with I2C pins for ESP32 C3
-  // SDA: GPIO4, SCL: GPIO5 (default I2C pins)
+  // Initialize display with I2C pins for ESP8266
+  // SDA: D2 (GPIO4), SCL: D1 (GPIO5)
   // This is a custom 128x64 OLED with starting point at (13, 14)
   display = new U8G2_SSD1306_128X64_NONAME_F_HW_I2C(U8G2_R0, U8X8_PIN_NONE);
   lastUpdate = 0;
@@ -13,7 +13,7 @@ OLEDDisplay::OLEDDisplay() {
   displayEnabled = true;
   
   // Button handling initialization
-  navButtonPin = 0; // Default to GPIO0 (BOOT button)
+  navButtonPin = 0; // Default to GPIO0 (FLASH button)
   lastButtonState = HIGH;
   lastButtonPress = 0;
   buttonDebounceTime = 200; // 200ms debounce
@@ -24,7 +24,7 @@ void OLEDDisplay::begin() {
 }
 
 void OLEDDisplay::begin(uint8_t buttonPin) {
-  Wire.begin(4, 5); // SDA=4, SCL=5 for ESP32 C3
+  Wire.begin(4, 5); // SDA=4 (D2), SCL=5 (D1) for ESP8266
   display->begin();
   display->setFont(u8g2_font_6x10_tr);
   display->setFontDirection(0);
@@ -36,7 +36,7 @@ void OLEDDisplay::begin(uint8_t buttonPin) {
   
   // Show startup message - adjusted for 128x64 screen with offset
   display->clearBuffer();
-  display->drawStr(15, 26, "ESP32 C3");
+  display->drawStr(15, 26, "ESP8266");
   display->drawStr(15, 38, "Afterburner");
   display->drawStr(15, 50, "Starting...");
   display->sendBuffer();
@@ -67,7 +67,7 @@ void OLEDDisplay::handleButton() {
   lastButtonState = currentButtonState;
 }
 
-void OLEDDisplay::update(const AfterburnerSettings& settings, float throttle, bool bleConnected) {
+void OLEDDisplay::update(const AfterburnerSettings& settings, float throttle, bool wifiConnected) {
   if (!displayEnabled) return;
   
   // Handle button input
@@ -82,13 +82,13 @@ void OLEDDisplay::update(const AfterburnerSettings& settings, float throttle, bo
   
   switch (currentPage) {
     case 0:
-      drawMainPage(settings, throttle, bleConnected);
+      drawMainPage(settings, throttle, wifiConnected);
       break;
     case 1:
       drawSettingsPage(settings);
       break;
     case 2:
-      drawStatusPage(settings, throttle, bleConnected);
+      drawStatusPage(settings, throttle, wifiConnected);
       break;
   }
   
@@ -104,7 +104,7 @@ void OLEDDisplay::update(const AfterburnerSettings& settings, float throttle, bo
   }
 }
 
-void OLEDDisplay::drawMainPage(const AfterburnerSettings& settings, float throttle, bool bleConnected) {
+void OLEDDisplay::drawMainPage(const AfterburnerSettings& settings, float throttle, bool wifiConnected) {
   // Title - adjusted for 128x64 screen with offset
   display->setFont(u8g2_font_6x10_tr);
   display->drawStr(15, 24, "Afterburner");
@@ -123,7 +123,7 @@ void OLEDDisplay::drawMainPage(const AfterburnerSettings& settings, float thrott
   drawThrottleBar(throttle);
   
   // Connection status
-  drawConnectionStatus(bleConnected);
+  drawConnectionStatus(wifiConnected);
   
   // Page indicator
   display->drawStr(15, 62, "Page 1/3");
@@ -161,7 +161,7 @@ void OLEDDisplay::drawSettingsPage(const AfterburnerSettings& settings) {
   display->drawStr(15, 62, "Page 2/3");
 }
 
-void OLEDDisplay::drawStatusPage(const AfterburnerSettings& settings, float throttle, bool bleConnected) {
+void OLEDDisplay::drawStatusPage(const AfterburnerSettings& settings, float throttle, bool wifiConnected) {
   // Title - adjusted for 128x64 screen with offset
   display->setFont(u8g2_font_6x10_tr);
   display->drawStr(15, 24, "Status");
@@ -185,8 +185,8 @@ void OLEDDisplay::drawStatusPage(const AfterburnerSettings& settings, float thro
   display->drawStr(45, 48, endColorStr);
   
   // Connection
-  display->drawStr(15, 60, "BLE:");
-  if (bleConnected) {
+  display->drawStr(15, 60, "WiFi:");
+  if (wifiConnected) {
     display->drawStr(45, 60, "Connected");
   } else {
     display->drawStr(45, 60, "Disconnected");
@@ -210,11 +210,11 @@ void OLEDDisplay::drawModeIndicator(uint8_t mode) {
   display->drawStr(50, 22, indicators[mode]);
 }
 
-void OLEDDisplay::drawConnectionStatus(bool bleConnected) {
-  if (bleConnected) {
-    display->drawStr(15, 60, "BLE: ON");
+void OLEDDisplay::drawConnectionStatus(bool wifiConnected) {
+  if (wifiConnected) {
+    display->drawStr(15, 60, "WiFi: ON");
   } else {
-    display->drawStr(15, 60, "BLE: OFF");
+    display->drawStr(15, 60, "WiFi: OFF");
   }
 }
 

@@ -1,20 +1,21 @@
 # AfterburnerControl
 
-A React Native application for controlling ESP32-based WS2812 LED afterburner effects for RC jets via Bluetooth Low Energy (BLE).
+A React Native application for controlling ESP8266-based WS2812 LED afterburner effects for RC jets via WebSocket over WiFi.
 
 ## Features
 
-- **BLE Connection**: Connect to ESP32 devices named "ABurner"
+- **WebSocket Connection**: Connect to ESP8266 devices via WiFi
 - **Real-time Control**: Adjust LED effects in real-time
 - **Color Management**: Set start and end colors with intuitive color picker (RGB sliders and predefined colors)
-- **Mode Selection**: Choose from Linear, Ease, and Pulse animation modes
+- **Mode Selection**: Choose from Static, Pulse, and Afterburner animation modes
 - **Parameter Control**: Adjust speed, brightness, number of LEDs, and afterburner threshold
 - **Status Monitoring**: Real-time display of throttle position and current mode
 - **Preset Management**: Save settings to device memory
+- **Automatic Reconnection**: Robust connection handling with automatic reconnection
 
 ## Hardware Requirements
 
-- ESP32 Dev Board (e.g., ESP32-DevKitC or WROOM32)
+- ESP8266 Dev Board (e.g., NodeMCU, Wemos D1 Mini, or ESP-12F)
 - WS2812B LED ring (45 LEDs recommended)
 - 5V UBEC/DC-DC converter (≥5A rated)
 - 74HCT245 level shifter (3.3V→5V)
@@ -79,11 +80,14 @@ npx react-native run-ios
 
 ## Usage
 
-1. **Connect to Device**: Tap the "Connect" button to scan for and connect to your ESP32 device named "ABurner"
+1. **Connect to Device**:
+
+   - Connect your mobile device to the ESP8266's WiFi network (`Afterburner_AP`)
+   - Tap the "Connect" button to establish WebSocket connection
 
 2. **Adjust Settings**:
 
-   - **Mode**: Select Linear, Ease, or Pulse animation mode
+   - **Mode**: Select Static, Pulse, or Afterburner animation mode
    - **Colors**: Set start and end colors using an intuitive color picker
    - **Speed**: Adjust animation speed (100-5000ms range)
    - **Brightness**: Set LED brightness (10-255 range)
@@ -96,54 +100,70 @@ npx react-native run-ios
 
 5. **Monitor Status**: View real-time throttle position and current mode
 
-## BLE Protocol
+## WebSocket Protocol
 
-The app communicates with the ESP32 using a custom BLE service with the following characteristics:
+The app communicates with the ESP8266 using WebSocket over WiFi with the following configuration:
 
-- **Service UUID**: `b5f9a000-2b6c-4f6a-93b1-2f1f5f9ab000`
-- **Mode**: `b5f9a001-2b6c-4f6a-93b1-2f1f5f9ab001` (u8)
-- **Start Color**: `b5f9a002-2b6c-4f6a-93b1-2f1f5f9ab002` (RGB)
-- **End Color**: `b5f9a003-2b6c-4f6a-93b1-2f1f5f9ab003` (RGB)
-- **Speed**: `b5f9a004-2b6c-4f6a-93b1-2f1f5f9ab004` (u16le)
-- **Brightness**: `b5f9a005-2b6c-4f6a-93b1-2f1f5f9ab005` (u8)
-- **Num LEDs**: `b5f9a006-2b6c-4f6a-93b1-2f1f5f9ab006` (u16le)
-- **AB Threshold**: `b5f9a007-2b6c-4f6a-93b1-2f1f5f9ab007` (u8)
-- **Save Preset**: `b5f9a008-2b6c-4f6a-93b1-2f1f5f9ab008` (u8)
-- **Status**: `b5f9a009-2b6c-4f6a-93b1-2f1f5f9ab009` (JSON notify)
+- **WiFi Network**: `Afterburner_AP` (password: `afterburner123`)
+- **Device IP**: `192.168.4.1`
+- **WebSocket Port**: `81`
+- **Connection URL**: `ws://192.168.4.1:81/`
+
+### Message Format
+
+Settings are sent as JSON objects:
+
+```json
+{
+  "mode": 0,
+  "startColor": [255, 0, 0],
+  "endColor": [0, 0, 255],
+  "speedMs": 1200,
+  "brightness": 200,
+  "numLeds": 45,
+  "abThreshold": 80
+}
+```
+
+Status updates are received as JSON:
+
+```json
+{
+  "type": "status",
+  "thr": 0.75,
+  "mode": 2
+}
+```
 
 ## Permissions
 
 ### Android
 
-- `BLUETOOTH_SCAN`
-- `BLUETOOTH_CONNECT`
-- `ACCESS_FINE_LOCATION`
-- `ACCESS_COARSE_LOCATION`
+- `ACCESS_NETWORK_STATE`
+- `ACCESS_WIFI_STATE`
+- `INTERNET`
 
 ### iOS
 
-- `NSBluetoothAlwaysUsageDescription`
-- `NSBluetoothPeripheralUsageDescription`
-- `NSLocationWhenInUseUsageDescription`
+- No special permissions required for WebSocket connections
 
 ## Dependencies
 
 The app uses the following key dependencies:
 
-- **react-native-ble-plx**: Bluetooth Low Energy communication
-- **react-native-color-picker**: Intuitive color selection interface
+- **WebSocket API**: Built-in WebSocket support for WiFi communication
 - **@react-native-community/slider**: Required by the color picker component
 
 ## Project Structure
 
 ```
 src/
-├── ble/
-│   ├── bleManager.ts      # BLE manager singleton
-│   ├── device.ts          # Device connection helpers
-│   └── uuids.ts           # BLE UUIDs and constants
+├── websocket/
+│   ├── websocketManager.ts  # WebSocket manager singleton
+│   ├── device.ts           # Device connection helpers
+│   └── constants.ts        # WebSocket constants and modes
 ├── components/
-│   └── ColorInput.tsx     # Color picker component
+│   └── ColorInput.tsx      # Color picker component
 └── screens/
     └── AfterburnerScreen.tsx  # Main control screen
 ```
@@ -152,15 +172,16 @@ src/
 
 ### Connection Issues
 
-- Ensure Bluetooth is enabled on your device
-- Verify the ESP32 device is advertising with name "ABurner"
-- Check that the ESP32 firmware is running and BLE service is active
-- Grant location permissions (required for BLE scanning on Android)
+- Ensure the ESP8266 device is powered on and running the firmware
+- Connect your mobile device to the `Afterburner_AP` WiFi network
+- Verify the device IP address is `192.168.4.1`
+- Check that the WebSocket server is running on port 81
 
-### Permission Issues
+### Network Issues
 
-- On Android 12+, ensure "Nearby Devices" permission is granted
-- On iOS, ensure Bluetooth permissions are granted in Settings
+- Ensure WiFi is enabled on your mobile device
+- Verify you're connected to the correct WiFi network
+- Check that the device is within WiFi range
 
 ### Build Issues
 
@@ -181,6 +202,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Acknowledgments
 
-- Based on the ESP32 WS2812 Afterburner specification
-- Uses react-native-ble-plx for BLE communication
+- Based on the ESP8266 WS2812 Afterburner specification
+- Uses WebSocket for WiFi communication
 - Built with React Native 0.81.1

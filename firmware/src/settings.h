@@ -1,7 +1,7 @@
 #ifndef SETTINGS_H
 #define SETTINGS_H
 
-#include <Preferences.h>
+#include <EEPROM.h>
 #include <Arduino.h>
 
 // Afterburner settings structure
@@ -30,8 +30,8 @@ struct AfterburnerSettings {
 
 class SettingsManager {
 private:
-  Preferences preferences;
   AfterburnerSettings settings;
+  bool settingsLoaded;
 
 public:
   SettingsManager();

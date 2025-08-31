@@ -39,6 +39,15 @@ void LEDEffects::update(uint16_t newLedCount) {
 }
 
 void LEDEffects::render(const AfterburnerSettings& settings, float throttle) {
+  // Debug output every 2 seconds
+  static unsigned long lastDebugTime = 0;
+  if (millis() - lastDebugTime > 2000) {
+    Serial.printf("LED Colors - Start: [%d,%d,%d], End: [%d,%d,%d], Throttle: %.2f\n",
+                 settings.startColor[0], settings.startColor[1], settings.startColor[2],
+                 settings.endColor[0], settings.endColor[1], settings.endColor[2], throttle);
+    lastDebugTime = millis();
+  }
+  
   // Clear all LEDs
   FastLED.clear();
   
@@ -86,6 +95,16 @@ void LEDEffects::renderCoreEffect(const AfterburnerSettings& settings, float thr
     
     // Set the LED
     leds[i] = color;
+  }
+  
+  // Debug: Show first LED color
+  static unsigned long lastColorDebugTime = 0;
+  if (millis() - lastColorDebugTime > 3000) {
+    if (numLeds > 0) {
+      Serial.printf("First LED Color: R=%d, G=%d, B=%d\n", 
+                   leds[0].r, leds[0].g, leds[0].b);
+    }
+    lastColorDebugTime = millis();
   }
 }
 
