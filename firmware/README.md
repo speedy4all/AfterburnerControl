@@ -1,226 +1,318 @@
-# ESP32 C3 Afterburner Project
+# ESP8266 Afterburner Controller - NodeMCU V3 Edition
 
-A complete LED afterburner effect system for RC models, featuring real-time throttle input, customizable LED effects, Bluetooth control, and OLED status display.
+A sophisticated LED afterburner controller for RC models using ESP8266 NodeMCU V3, featuring automatic throttle calibration, real-time LED effects, and wireless control via React Native app.
 
 ## 🚀 Features
 
-### Core Functionality
+### Core Features
 
-- **Real-time Throttle Input**: PWM signal processing from RC receivers or potentiometers
-- **Dynamic LED Effects**: WS2812B LED strip with afterburner simulation
-- **Multiple Effect Modes**: Linear, Ease, and Pulse animations
-- **Bluetooth Control**: Remote configuration via BLE app
-- **OLED Status Display**: Built-in 128x64 OLED with navigation
-- **Settings Persistence**: EEPROM storage for configurations
+- **Automatic Throttle Calibration**: Automatically detects your transmitter's PWM range (works with any transmitter)
+- **Real-time LED Effects**: Dynamic afterburner effects that respond to throttle input
+- **Wireless Control**: React Native app for real-time settings adjustment
+- **Multiple Effect Modes**: Static, Pulse, and Afterburner modes
+- **WebSocket Communication**: Real-time bidirectional communication
+- **EEPROM Settings Storage**: Persistent configuration across reboots
 
-### LED Effects
+### Hardware Features
 
-- **Core Effect**: Simulates jet engine core with color gradients
-- **Afterburner Overlay**: Dynamic flame effect based on throttle
-- **Flicker Simulation**: Realistic engine flickering
-- **Sparkle Effects**: Random sparkles for authenticity
-- **Color Customization**: Full RGB control for start/end colors
+- **ESP8266 NodeMCU V3** compatibility
+- **WS2812B LED Strip** support (up to 300 LEDs)
+- **PWM Throttle Input** (automatic calibration)
+- **5V Power Supply** support for LED strips
+- **WiFi Access Point** for wireless control
 
-### User Interface
+## 📋 Requirements
 
-- **Three-Page OLED Display**:
-  - Main Status (mode, throttle, connection)
-  - Settings (speed, brightness, LED count, threshold)
-  - Detailed Status (colors, connection details)
-- **Navigation Button**: Manual page control with debouncing
-- **Serial Monitor**: Comprehensive debug information
-- **BLE App**: Remote control and monitoring
+### Hardware
 
-## 📋 Hardware Requirements
+- **ESP8266 NodeMCU V3** (or compatible)
+- **WS2812B LED Strip** (5V)
+- **5V Power Supply** (1A+ for LED strip)
+- **RC Transmitter** (any brand - Futaba, Spektrum, FlySky, etc.)
+- **Jumper Wires**
 
-### Required Components
+### Software
 
-- **ESP32 C3 OLED Development Board** (main controller)
-- **WS2812B LED Strip** (afterburner effect display)
-- **Navigation Button** (momentary push button)
-- **Throttle Input** (RC receiver or potentiometer)
-- **Power Supply** (5V for LED strip, 3.3V for logic)
+- **PlatformIO** or **Arduino IDE**
+- **React Native** (for mobile app)
+- **FastLED Library** (v3.5.0+)
+- **ArduinoJson Library** (v6.0+)
+- **WebSockets Library** (v2.3.5+)
 
-### Optional Components
+## 🔌 Wiring Diagram
 
-- **External 5V Power Supply** (for large LED strips)
-- **Capacitors** (for LED strip stability)
-- **Heat Shrink/Electrical Tape** (for insulation)
+### NodeMCU V3 Pinout
 
-## 🔧 Pin Configuration
+```
+ESP8266 NodeMCU V3:
+├── D5 (GPIO14) → Throttle PWM Input
+├── D6 (GPIO12) → LED Strip Data (Din)
+├── 3.3V → Logic level (ESP8266)
+├── 5V → LED Strip Power (external supply)
+├── GND → Common Ground (connect all GNDs)
+└── D1/D2 → I2C (if using OLED display)
+```
 
-| Pin    | Function          | Direction     | Component            |
-| ------ | ----------------- | ------------- | -------------------- |
-| GPIO0  | BOOT Button       | Input         | Programming          |
-| GPIO1  | UART TX           | Output        | Serial Communication |
-| GPIO2  | Navigation Button | Input         | OLED Page Control    |
-| GPIO3  | UART RX           | Input         | Serial Communication |
-| GPIO4  | I2C SDA           | Bidirectional | OLED Display         |
-| GPIO5  | I2C SCL           | Output        | OLED Display         |
-| GPIO18 | LED Data          | Output        | WS2812B Strip        |
-| GPIO34 | Throttle Input    | Input         | PWM Signal           |
+### Power Supply
 
-## 📚 Documentation
-
-### Setup Guides
-
-- **[Complete Wiring Diagram](ESP32_AFTERBURNER_COMPLETE_WIRING.md)** - Full hardware setup
-- **[OLED Display Guide](OLED_DISPLAY_README.md)** - Display functionality
-- **[Navigation Button Guide](NAVIGATION_BUTTON_WIRING.md)** - Button setup
-
-### Code Structure
-
-- **main.cpp** - Main application logic
-- **settings.h/cpp** - Configuration management
-- **throttle.h/cpp** - PWM input processing
-- **led_effects.h/cpp** - LED animation system
-- **ble_service.h/cpp** - Bluetooth communication
-- **oled_display.h/cpp** - Display interface
+- **LED Strip**: 5V external power supply (1A+ recommended)
+- **ESP8266**: USB or 3.3V supply
+- **Common Ground**: Connect ESP8266 GND to power supply GND
 
 ## 🛠️ Installation
 
-### 1. Hardware Setup
+### 1. Firmware Setup
+
+#### Using PlatformIO (Recommended)
 
 ```bash
-# Follow the complete wiring guide
-# Connect components according to pin configuration
-# Ensure proper power supply for LED count
+# Clone the repository
+git clone <repository-url>
+cd Afterburner/firmware
+
+# Install dependencies
+pio lib install "FastLED"
+pio lib install "ArduinoJson"
+pio lib install "WebSockets"
+
+# Build and upload
+pio run --target upload
 ```
 
-### 2. Software Setup
+#### Using Arduino IDE
+
+1. Install required libraries:
+   - FastLED
+   - ArduinoJson
+   - WebSockets
+2. Open `firmware/src/main.cpp`
+3. Select "NodeMCU 1.0" board
+4. Upload the sketch
+
+### 2. Mobile App Setup
 
 ```bash
-# Install PlatformIO
-# Clone this repository
-# Install dependencies (FastLED, NimBLE, U8g2)
-```
-
-### 3. Configuration
-
-```cpp
-// Edit main.cpp to configure:
-oledDisplay.begin(2);  // Navigation button pin
-// LED count in settings
-// Throttle input pin (default: GPIO34)
-```
-
-### 4. Upload
-
-```bash
-# Upload to ESP32 C3 via USB-C
-# Monitor Serial output (115200 baud)
-# Test all components
+cd Afterburner/AfterburnerControl
+npm install
+npx react-native run-android  # or run-ios
 ```
 
 ## 🎮 Usage
 
-### Basic Operation
+### First Time Setup
 
-1. **Power On**: ESP32 boots and shows startup screen
-2. **Throttle Input**: Connect RC receiver or potentiometer
-3. **LED Effects**: Watch afterburner simulation respond to throttle
-4. **Navigation**: Use button to cycle through OLED pages
-5. **BLE Control**: Connect phone app for remote configuration
+1. **Power on the ESP8266**
+2. **Automatic Calibration**: The device will automatically start throttle calibration
+3. **Move Throttle**: Move your throttle stick from MIN to MAX several times
+4. **Wait for Completion**: Calibration completes after 100 samples (~5-10 seconds)
+5. **Connect to WiFi**: Connect to "Afterburner_AP" network
+6. **Open App**: Launch the React Native app
 
-### Effect Modes
+### Throttle Calibration
 
-- **Linear**: Direct throttle-to-brightness mapping
-- **Ease**: Smooth acceleration curve
-- **Pulse**: Pulsing effect at high throttle
+The system automatically calibrates your transmitter's PWM range:
 
-### Settings Control
+```
+=== THROTTLE CALIBRATION STARTED ===
+Move your throttle stick from MIN to MAX several times
+Calibration will complete automatically after 100 samples
+Calibration: 10 samples, Min: 988 us, Max: 2011 us
+Calibration: 20 samples, Min: 988 us, Max: 2011 us
+...
+=== THROTTLE CALIBRATION COMPLETE ===
+Min Pulse: 988 us
+Max Pulse: 2011 us
+Range: 1023 us
+Calibration saved!
+```
 
-- **Speed**: Animation timing (100-5000ms)
-- **Brightness**: LED intensity (10-255)
-- **LED Count**: Number of LEDs in strip
-- **AB Threshold**: Afterburner activation point
-- **Colors**: Start and end RGB values
+### LED Effects
 
-## 🔍 Troubleshooting
+#### Mode 0: Static
 
-### Common Issues
+- Solid color that changes brightness with throttle
 
-1. **OLED Display Issues**
+#### Mode 1: Pulse
 
-   - Check I2C connections (GPIO4/5)
-   - Verify power supply (3.3V)
-   - Ensure correct screen type (128x64, starting at 13,14)
+- Smooth pulsing effect with throttle-responsive intensity
 
-2. **LED Strip Problems**
+#### Mode 2: Afterburner
 
-   - Verify data connection (GPIO18)
-   - Check power supply adequacy
-   - Ensure correct data flow direction
+- Dynamic afterburner effect with sparkles and color transitions
 
-3. **Throttle Input Issues**
+### Mobile App Controls
 
-   - Check PWM signal on GPIO34
-   - Verify signal range (1-2ms typical)
-   - Test with potentiometer
+- **Mode Selection**: Choose between Static, Pulse, and Afterburner
+- **Color Control**: Set start and end colors (RGB)
+- **Brightness**: Adjust LED brightness (10-255)
+- **Speed**: Control animation speed (100-5000ms)
+- **LED Count**: Set number of LEDs (1-300)
+- **Afterburner Threshold**: Set afterburner activation point (0-100%)
 
-4. **BLE Connection Problems**
-   - Check antenna connection
-   - Verify power supply stability
-   - Look for "ABurner" device in app
+## 🔧 Configuration
 
-### Debug Information
+### Pin Definitions
 
-- **Serial Monitor**: Real-time system status
-- **OLED Display**: Current settings and throttle
-- **LED Patterns**: Visual system state indication
-- **BLE App**: Remote monitoring and control
+```cpp
+// Throttle input
+#define THR_PIN 14  // D5 - GPIO14
 
-## 📊 Performance
+// LED strip
+#define LED_PIN 12  // D6 - GPIO12
 
-### Power Requirements
+// WiFi settings
+#define WIFI_SSID "Afterburner_AP"
+#define WIFI_PASSWORD "afterburner123"
+#define WEB_SERVER_PORT 80
+#define WEB_SOCKET_PORT 81
+```
 
-- **ESP32 C3**: ~100-200mA at 5V
-- **LED Strip**: ~60mA per LED at full brightness
-- **45 LEDs**: ~2.7A at 5V (13.5W)
-- **100 LEDs**: ~6A at 5V (30W)
+### Calibration Settings
 
-### Timing
+```cpp
+#define CALIBRATION_SAMPLES 100  // Number of samples for calibration
+#define PWM_TIMEOUT 50000        // PWM read timeout (50ms)
+```
 
-- **Main Loop**: 50 FPS (20ms delay)
-- **OLED Update**: 500ms intervals
-- **BLE Status**: 200ms notifications
-- **LED Effects**: Real-time rendering
+## 🐛 Troubleshooting
 
-## 🔮 Future Enhancements
+### Throttle Issues
 
-### Planned Features
+**Problem**: Throttle not responding
 
-- **WiFi Connectivity**: Web interface for configuration
-- **Multiple LED Strips**: Support for multiple afterburner zones
-- **Sound Effects**: Audio simulation via buzzer
-- **Temperature Monitoring**: Thermal protection
-- **Preset Management**: Save/load effect configurations
-- **Advanced Effects**: More realistic engine simulations
+- **Solution**: Check wiring to D5 (GPIO14)
+- **Solution**: Ensure transmitter is powered on
+- **Solution**: Move throttle during calibration
 
-### Hardware Expansions
+**Problem**: Throttle jumping between values
 
-- **Additional Sensors**: Temperature, vibration, pressure
-- **External Displays**: Larger status displays
-- **Audio Output**: Engine sound simulation
-- **Power Management**: Battery monitoring and protection
+- **Solution**: Check for loose connections
+- **Solution**: Add 0.1μF capacitor between signal and ground
+- **Solution**: Verify power supply stability
 
-## 📄 License
+### LED Issues
 
-This project is open source and available under the MIT License.
+**Problem**: LEDs not lighting up
+
+- **Solution**: Check 5V power supply connection
+- **Solution**: Verify data wire connection to D6 (GPIO12)
+- **Solution**: Ensure common ground connection
+- **Solution**: Check LED strip type (must be WS2812B)
+
+**Problem**: Wrong colors
+
+- **Solution**: Check LED strip color order (GRB vs RGB)
+- **Solution**: Verify power supply current rating
+
+### WiFi Issues
+
+**Problem**: Can't connect to WiFi
+
+- **Solution**: Check SSID "Afterburner_AP"
+- **Solution**: Verify password "afterburner123"
+- **Solution**: Ensure device is within range
+
+**Problem**: App not connecting
+
+- **Solution**: Check WebSocket port 81
+- **Solution**: Verify firewall settings
+- **Solution**: Restart the ESP8266
+
+## 📊 Debug Output
+
+### Serial Monitor Output
+
+```
+ESP8266 Afterburner Starting...
+=== Hardware Test ===
+Testing PWM pin 14 (D5)...
+Testing LED pin 12 (D6)...
+Testing LED strip with simple pattern...
+Showing red pattern...
+Showing green pattern...
+Showing blue pattern...
+Clearing LEDs...
+Hardware test complete
+OLED Display initialization skipped
+Forced test colors: Red -> Green
+Demo mode disabled - testing real PWM signal
+Starting automatic throttle calibration...
+=== THROTTLE CALIBRATION STARTED ===
+Move your throttle stick from MIN to MAX several times
+Calibration will complete automatically after 100 samples
+Calibration: 10 samples, Min: 988 us, Max: 2011 us
+...
+=== THROTTLE CALIBRATION COMPLETE ===
+Min Pulse: 988 us
+Max Pulse: 2011 us
+Range: 1023 us
+Calibration saved!
+ESP8266 Afterburner Ready!
+Throttle: 0.07, Mode: 1, LEDs: 19, Calibrated: 988-2011 us
+PWM: 988 us -> 0.07 throttle
+LED Colors - Start: [255,0,0], End: [0,255,0], Throttle: 0.07
+First LED Color: R=30, G=0, B=0
+```
+
+## 🔄 Recent Changes (v2.0)
+
+### Added Features
+
+- ✅ **Automatic Throttle Calibration**: Works with any transmitter
+- ✅ **Enhanced PWM Detection**: Improved signal validation
+- ✅ **Real-time Debug Output**: Comprehensive serial monitoring
+- ✅ **Dynamic Color Mapping**: Uses calibrated PWM range
+- ✅ **Improved Error Handling**: Better failsafe mechanisms
+
+### Removed Features
+
+- ❌ **OLED Display Support**: Removed to reduce complexity
+- ❌ **Manual PWM Configuration**: Replaced with auto-calibration
+- ❌ **Excessive Debug Output**: Streamlined for clarity
+
+### Technical Improvements
+
+- 🔧 **Faster Throttle Response**: Increased smoothing factor
+- 🔧 **Better Signal Validation**: Improved PWM range detection
+- 🔧 **Enhanced LED Effects**: More responsive color transitions
+- 🔧 **Optimized Memory Usage**: Reduced RAM footprint
+
+## 📝 Version History
+
+### v2.0 (Current) - NodeMCU V3 Edition
+
+- Automatic throttle calibration
+- Enhanced debugging and monitoring
+- Improved PWM signal handling
+- Removed OLED display dependencies
+- Optimized for NodeMCU V3
+
+### v1.0 (Previous)
+
+- Basic PWM throttle input
+- Manual configuration required
+- OLED display support
+- Basic LED effects
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please feel free to submit pull requests or open issues for bugs and feature requests.
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
 
-## 📞 Support
+## 📄 License
 
-For support and questions:
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-1. Check the troubleshooting section
-2. Review the wiring diagrams
-3. Monitor Serial output for debug information
-4. Open an issue with detailed problem description
+## 🙏 Acknowledgments
+
+- **FastLED Library**: For excellent LED strip support
+- **ArduinoJson**: For robust JSON handling
+- **WebSockets**: For real-time communication
+- **ESP8266 Community**: For continuous improvements
 
 ---
 
-**Happy Flying! 🛩️**
+**NodeMCU V3 Edition** - Optimized for ESP8266 NodeMCU V3 with automatic calibration and enhanced features.

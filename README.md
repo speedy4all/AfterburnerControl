@@ -1,261 +1,192 @@
-# ESP32 C3 Afterburner Project
+# ESP8266 Afterburner Controller - NodeMCU V3 Edition
 
-A complete LED afterburner effect system for RC models, featuring real-time throttle input, customizable LED effects, Bluetooth control, and OLED status display.
+A sophisticated LED afterburner controller for RC models using ESP8266 NodeMCU V3, featuring automatic throttle calibration, real-time LED effects, and wireless control via React Native app.
 
-![ESP32 C3 Afterburner](https://img.shields.io/badge/ESP32%20C3%20Afterburner-Project-blue)
-![Platform](https://img.shields.io/badge/Platform-ESP32%20C3-green)
+![ESP8266 Afterburner](https://img.shields.io/badge/ESP8266-NodeMCU%20V3-blue)
+![Version](https://img.shields.io/badge/Version-2.0.0-green)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
-![Firmware Tests](https://github.com/speedy4all/AfterburnerControl/workflows/Firmware%20Testing/badge.svg)
-![React Native Tests](https://github.com/speedy4all/AfterburnerControl/workflows/Run%20Tests/badge.svg)
-![React Native Build](https://github.com/speedy4all/AfterburnerControl/workflows/Build%20React%20Native%20App/badge.svg)
 
-## 🚀 Project Overview
+## 🚀 Features
 
-This project creates a realistic afterburner effect for RC jet models using an ESP32 C3 OLED development board. The system features:
+### ✨ Core Features
 
-- **Real-time throttle input processing** from RC receivers or potentiometers
-- **Dynamic LED effects** with WS2812B strips simulating jet engine afterburner
-- **Bluetooth remote control** via BLE for real-time configuration
-- **OLED status display** with three-page interface and navigation
-- **Multiple effect modes** (Linear, Ease, Pulse) for different engine characteristics
-- **Settings persistence** with EEPROM storage
+- **🎯 Automatic Throttle Calibration**: Works with any transmitter (Futaba, Spektrum, FlySky, etc.)
+- **💡 Real-time LED Effects**: Dynamic afterburner effects that respond to throttle input
+- **📱 Wireless Control**: React Native app for real-time settings adjustment
+- **🎨 Multiple Effect Modes**: Static, Pulse, and Afterburner modes
+- **🔗 WebSocket Communication**: Real-time bidirectional communication
+- **💾 EEPROM Settings Storage**: Persistent configuration across reboots
+
+### 🔧 Hardware Features
+
+- **ESP8266 NodeMCU V3** compatibility
+- **WS2812B LED Strip** support (up to 300 LEDs)
+- **PWM Throttle Input** (automatic calibration)
+- **5V Power Supply** support for LED strips
+- **WiFi Access Point** for wireless control
+
+## 📋 Quick Start
+
+### 1. Hardware Setup
+
+```
+ESP8266 NodeMCU V3:
+├── D5 (GPIO14) → Throttle PWM Input
+├── D6 (GPIO12) → LED Strip Data (Din)
+├── 5V → LED Strip Power (external supply)
+└── GND → Common Ground (connect all GNDs)
+```
+
+### 2. Firmware Upload
+
+```bash
+cd firmware
+pio run --target upload
+```
+
+### 3. First Time Setup
+
+1. **Power on** the ESP8266
+2. **Move throttle stick** from MIN to MAX several times (automatic calibration)
+3. **Connect to WiFi** "Afterburner_AP" (password: afterburner123)
+4. **Launch mobile app** and start controlling!
+
+## 🎮 Usage
+
+### Automatic Calibration
+
+The system automatically detects your transmitter's PWM range:
+
+```
+=== THROTTLE CALIBRATION STARTED ===
+Move your throttle stick from MIN to MAX several times
+Calibration: 10 samples, Min: 988 us, Max: 2011 us
+...
+=== THROTTLE CALIBRATION COMPLETE ===
+Min Pulse: 988 us, Max Pulse: 2011 us
+Calibration saved!
+```
+
+### LED Effects
+
+- **Mode 0: Static** - Solid color with throttle-responsive brightness
+- **Mode 1: Pulse** - Smooth pulsing effect
+- **Mode 2: Afterburner** - Dynamic flame effect with sparkles
+
+### Mobile App Controls
+
+- **Mode Selection**: Choose effect type
+- **Color Control**: Set start/end colors (RGB)
+- **Brightness**: Adjust LED intensity (10-255)
+- **Speed**: Control animation speed (100-5000ms)
+- **LED Count**: Set number of LEDs (1-300)
+- **Afterburner Threshold**: Set activation point (0-100%)
+
+## 🔧 Configuration
+
+### Pin Definitions
+
+```cpp
+#define THR_PIN 14  // D5 - GPIO14 (Throttle input)
+#define LED_PIN 12  // D6 - GPIO12 (LED strip data)
+```
+
+### WiFi Settings
+
+```cpp
+#define WIFI_SSID "Afterburner_AP"
+#define WIFI_PASSWORD "afterburner123"
+#define WEB_SOCKET_PORT 81
+```
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+**Throttle not responding?**
+
+- Check wiring to D5 (GPIO14)
+- Ensure transmitter is powered on
+- Move throttle during calibration
+
+**LEDs not lighting up?**
+
+- Check 5V power supply connection
+- Verify data wire to D6 (GPIO12)
+- Ensure common ground connection
+
+**Can't connect to WiFi?**
+
+- Check SSID "Afterburner_AP"
+- Verify password "afterburner123"
+- Ensure device is within range
+
+## 📊 Debug Output
+
+The system provides comprehensive debug information:
+
+```
+ESP8266 Afterburner Starting...
+=== THROTTLE CALIBRATION STARTED ===
+Calibration: 10 samples, Min: 988 us, Max: 2011 us
+=== THROTTLE CALIBRATION COMPLETE ===
+ESP8266 Afterburner Ready!
+Throttle: 0.07, Mode: 1, LEDs: 19, Calibrated: 988-2011 us
+PWM: 988 us -> 0.07 throttle
+LED Colors - Start: [255,0,0], End: [0,255,0], Throttle: 0.07
+```
+
+## 🔄 Recent Changes (v2.0)
+
+### ✅ Added Features
+
+- **Automatic Throttle Calibration**: Works with any transmitter
+- **Enhanced PWM Detection**: Improved signal validation
+- **Real-time Debug Output**: Comprehensive serial monitoring
+- **Dynamic Color Mapping**: Uses calibrated PWM range
+- **Improved Error Handling**: Better failsafe mechanisms
+
+### ❌ Removed Features
+
+- **OLED Display Support**: Removed to reduce complexity
+- **Manual PWM Configuration**: Replaced with auto-calibration
+- **Excessive Debug Output**: Streamlined for clarity
+
+### 🔧 Technical Improvements
+
+- **Faster Throttle Response**: Increased smoothing factor
+- **Better Signal Validation**: Improved PWM range detection
+- **Enhanced LED Effects**: More responsive color transitions
+- **Optimized Memory Usage**: Reduced RAM footprint
 
 ## 📁 Project Structure
 
 ```
-ESP32-C3-Afterburner/
-├── firmware/                          # ESP32 C3 firmware
-│   ├── src/                          # Source code
-│   │   ├── main.cpp                  # Main application
-│   │   ├── settings.h/cpp            # Settings management
-│   │   ├── throttle.h/cpp            # PWM input processing
-│   │   ├── led_effects.h/cpp         # LED animation system
-│   │   ├── ble_service.h/cpp         # Bluetooth communication
-│   │   └── oled_display.h/cpp        # OLED display interface
-│   ├── platformio.ini                # PlatformIO configuration
-│   ├── README.md                     # Firmware documentation
-│   ├── ESP32_AFTERBURNER_COMPLETE_WIRING.md
-│   ├── OLED_DISPLAY_README.md
-│   ├── NAVIGATION_BUTTON_WIRING.md
-│   └── PROJECT_VERIFICATION.md
-├── AfterburnerControl/               # React Native mobile app
-│   ├── src/                          # App source code
-│   ├── android/                      # Android specific files
-│   ├── ios/                          # iOS specific files
-│   └── package.json                  # Dependencies
-├── docs/                             # Additional documentation
-├── .gitignore                        # Git ignore rules
-└── README.md                         # This file
+Afterburner/
+├── firmware/                 # ESP8266 firmware
+│   ├── src/                 # Source code
+│   │   ├── main.cpp         # Main application
+│   │   ├── throttle.h/cpp   # Throttle processing
+│   │   ├── led_effects.h/cpp # LED animations
+│   │   ├── settings.h/cpp   # Configuration
+│   │   └── wifi_service.h/cpp # WiFi/WebSocket
+│   ├── platformio.ini       # PlatformIO config
+│   └── README.md            # Firmware documentation
+├── AfterburnerControl/       # React Native app
+│   ├── src/                 # App source code
+│   ├── package.json         # Dependencies
+│   └── README.md            # App documentation
+├── docs/                    # Additional documentation
+└── README.md               # This file
 ```
-
-## 🛠️ Hardware Requirements
-
-### Required Components
-
-- **ESP32 C3 OLED Development Board** (main controller)
-- **WS2812B LED Strip** (afterburner effect display)
-- **Navigation Button** (momentary push button)
-- **Throttle Input** (RC receiver or potentiometer)
-- **Power Supply** (5V for LED strip, 3.3V for logic)
-
-### Optional Components
-
-- **External 5V Power Supply** (for large LED strips)
-- **Capacitors** (for LED strip stability)
-- **Heat Shrink/Electrical Tape** (for insulation)
-
-## 🔧 Pin Configuration
-
-| Pin    | Function          | Direction     | Component            |
-| ------ | ----------------- | ------------- | -------------------- |
-| GPIO0  | BOOT Button       | Input         | Programming          |
-| GPIO1  | UART TX           | Output        | Serial Communication |
-| GPIO2  | Navigation Button | Input         | OLED Page Control    |
-| GPIO3  | UART RX           | Input         | Serial Communication |
-| GPIO4  | I2C SDA           | Bidirectional | OLED Display         |
-| GPIO5  | I2C SCL           | Output        | OLED Display         |
-| GPIO18 | LED Data          | Output        | WS2812B Strip        |
-| GPIO34 | Throttle Input    | Input         | PWM Signal           |
-
-## 📚 Documentation
-
-### Setup Guides
-
-- **[Complete Wiring Diagram](firmware/ESP32_AFTERBURNER_COMPLETE_WIRING.md)** - Full hardware setup
-- **[OLED Display Guide](firmware/OLED_DISPLAY_README.md)** - Display functionality
-- **[Navigation Button Guide](firmware/NAVIGATION_BUTTON_WIRING.md)** - Button setup
-- **[Project Verification](firmware/PROJECT_VERIFICATION.md)** - Complete verification checklist
-
-### Firmware Documentation
-
-- **[Firmware README](firmware/README.md)** - Detailed firmware documentation
-- **Code Structure** - Modular design with separate classes for each component
-- **API Reference** - Function descriptions and parameters
-
-## 🚀 Quick Start
-
-### 1. Hardware Setup
-
-```bash
-# Follow the complete wiring guide
-# Connect components according to pin configuration
-# Ensure proper power supply for LED count
-```
-
-### 2. Software Setup
-
-```bash
-# Install PlatformIO
-pip install platformio
-
-# Clone this repository
-git clone https://github.com/speedy4all/AfterburnerControl.git
-cd AfterburnerControl
-
-# Install dependencies
-cd firmware
-pio lib install
-```
-
-### 3. Configuration
-
-```cpp
-// Edit firmware/src/main.cpp to configure:
-oledDisplay.begin(2);  // Navigation button pin
-// LED count in settings
-// Throttle input pin (default: GPIO34)
-```
-
-### 4. Upload and Test
-
-```bash
-# Upload to ESP32 C3 via USB-C
-pio run --target upload
-
-# Monitor Serial output (115200 baud)
-pio device monitor
-```
-
-## 🎮 Features
-
-### LED Effects
-
-- **Core Effect**: Simulates jet engine core with color gradients
-- **Afterburner Overlay**: Dynamic flame effect based on throttle
-- **Flicker Simulation**: Realistic engine flickering
-- **Sparkle Effects**: Random sparkles for authenticity
-- **Color Customization**: Full RGB control for start/end colors
-
-### User Interface
-
-- **Three-Page OLED Display**:
-  - Main Status (mode, throttle, connection)
-  - Settings (speed, brightness, LED count, threshold)
-  - Detailed Status (colors, connection details)
-- **Navigation Button**: Manual page control with debouncing
-- **Serial Monitor**: Comprehensive debug information
-- **BLE App**: Remote control and monitoring
-
-### Effect Modes
-
-- **Linear**: Direct throttle-to-brightness mapping
-- **Ease**: Smooth acceleration curve
-- **Pulse**: Pulsing effect at high throttle
-
-## 📊 Performance
-
-### Power Requirements
-
-- **ESP32 C3**: ~100-200mA at 5V
-- **LED Strip**: ~60mA per LED at full brightness
-- **45 LEDs**: ~2.7A at 5V (13.5W)
-- **100 LEDs**: ~6A at 5V (30W)
-
-### Timing
-
-- **Main Loop**: 50 FPS (20ms delay)
-- **OLED Update**: 500ms intervals
-- **BLE Status**: 200ms notifications
-- **LED Effects**: Real-time rendering
-
-## 🔍 Troubleshooting
-
-### Common Issues
-
-1. **OLED Display Issues**
-
-   - Check I2C connections (GPIO4/5)
-   - Verify power supply (3.3V)
-   - Ensure correct screen type (128x64, starting at 13,14)
-
-2. **LED Strip Problems**
-
-   - Verify data connection (GPIO18)
-   - Check power supply adequacy
-   - Ensure correct data flow direction
-
-3. **Throttle Input Issues**
-
-   - Check PWM signal on GPIO34
-   - Verify signal range (1-2ms typical)
-   - Test with potentiometer
-
-4. **BLE Connection Problems**
-   - Check antenna connection
-   - Verify power supply stability
-   - Look for "ABurner" device in app
-
-### Debug Information
-
-- **Serial Monitor**: Real-time system status
-- **OLED Display**: Current settings and throttle
-- **LED Patterns**: Visual system state indication
-- **BLE App**: Remote monitoring and control
 
 ## 🤝 Contributing
 
-We welcome contributions! Please feel free to submit pull requests or open issues for bugs and feature requests.
-
-### Development Setup
-
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-### Code Style
-
-- Follow existing code formatting
-- Add comments for complex logic
-- Update documentation for new features
-- Include tests when possible
-
-## 🔄 CI/CD Pipeline
-
-This project uses GitHub Actions for continuous integration and deployment:
-
-### Build Workflows
-
-- **Firmware Testing**: Automatically builds and validates ESP32 C3 firmware using PlatformIO
-- **React Native Tests**: Runs unit tests for the mobile application
-- **React Native Build**: Builds both Android APK and iOS app
-
-### Build Status
-
-The build status badges above show the current state of:
-
-- ✅ **Firmware Tests**: ESP32 C3 firmware compilation and validation
-- ✅ **React Native Tests**: Mobile app unit test execution and coverage
-- ✅ **React Native Build**: Mobile app builds for Android and iOS
-
-### Artifacts
-
-Build artifacts are automatically generated and can be downloaded from the GitHub Actions page:
-
-- **Firmware Testing**: Compiled firmware binaries (.bin, .elf files) and test reports
-- **React Native Tests**: Test coverage reports and analysis
-- **React Native Build**: Android APK files and iOS build packages
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
 
 ## 📄 License
 
@@ -263,52 +194,20 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- **ESP32 Community** for excellent documentation and support
-- **FastLED Library** for powerful LED control capabilities
-- **NimBLE Library** for efficient Bluetooth communication
-- **U8g2 Library** for OLED display support
-- **PlatformIO** for excellent development environment
+- **FastLED Library**: For excellent LED strip support
+- **ArduinoJson**: For robust JSON handling
+- **WebSockets**: For real-time communication
+- **ESP8266 Community**: For continuous improvements
 
 ## 📞 Support
 
 For support and questions:
 
-1. Check the troubleshooting section
-2. Review the wiring diagrams
+1. Check the [firmware documentation](firmware/README.md)
+2. Review the [troubleshooting section](firmware/README.md#troubleshooting)
 3. Monitor Serial output for debug information
 4. Open an issue with detailed problem description
 
-## 🔮 Future Enhancements
-
-### Planned Features
-
-- **WiFi Connectivity**: Web interface for configuration
-- **Multiple LED Strips**: Support for multiple afterburner zones
-- **Sound Effects**: Audio simulation via buzzer
-- **Temperature Monitoring**: Thermal protection
-- **Preset Management**: Save/load effect configurations
-- **Advanced Effects**: More realistic engine simulations
-
-### Hardware Expansions
-
-- **Additional Sensors**: Temperature, vibration, pressure
-- **External Displays**: Larger status displays
-- **Audio Output**: Engine sound simulation
-- **Power Management**: Battery monitoring and protection
-
 ---
 
-**Happy Flying! 🛩️**
-
----
-
-<div align="center">
-
-**ESP32 C3 Afterburner Project** - Bringing realistic afterburner effects to RC models
-
-[![GitHub stars](https://img.shields.io/github/stars/speedy4all/AfterburnerControl?style=social)](https://github.com/speedy4all/AfterburnerControl/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/speedy4all/AfterburnerControl?style=social)](https://github.com/speedy4all/AfterburnerControl/network/members)
-[![GitHub issues](https://img.shields.io/github/issues/speedy4all/AfterburnerControl)](https://github.com/speedy4all/AfterburnerControl/issues)
-[![GitHub license](https://img.shields.io/github/license/speedy4all/AfterburnerControl)](https://github.com/speedy4all/AfterburnerControl/blob/master/LICENSE)
-
-</div>
+**NodeMCU V3 Edition v2.0.0** - The most user-friendly and reliable ESP8266 afterburner controller yet! 🛩️
