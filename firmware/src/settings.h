@@ -1,6 +1,7 @@
 #ifndef SETTINGS_H
 #define SETTINGS_H
 
+#include <Arduino.h>
 #include <Preferences.h>
 #include <Arduino.h>
 
@@ -13,6 +14,9 @@ struct AfterburnerSettings {
   uint8_t brightness;     // Brightness cap (10-255)
   uint16_t numLeds;       // Number of LEDs
   uint8_t abThreshold;    // Afterburner threshold (0-100%)
+  uint16_t throttleMin;   // Calibrated min throttle PWM value
+  uint16_t throttleMax;   // Calibrated max throttle PWM value
+  bool throttleCalibrated; // Whether throttle has been calibrated
 };
 
 // Default settings
@@ -27,11 +31,15 @@ struct AfterburnerSettings {
 #define DEFAULT_BRIGHTNESS 200
 #define DEFAULT_NUM_LEDS 45
 #define DEFAULT_AB_THRESHOLD 80
+#define DEFAULT_THROTTLE_MIN 900
+#define DEFAULT_THROTTLE_MAX 2000
+#define DEFAULT_THROTTLE_CALIBRATED false
 
 class SettingsManager {
 private:
   Preferences preferences;
   AfterburnerSettings settings;
+  bool initialized;
 
 public:
   SettingsManager();
@@ -40,6 +48,24 @@ public:
   void saveSettings();
   AfterburnerSettings& getSettings();
   void updateSettings(const AfterburnerSettings& newSettings);
+  void verifySettings();
+  void resetToDefaults();
+  void checkFlashStatus();
+  void printPreferencesInfo();
+  bool isInitialized();
+  bool hasSavedSettings();
+  
+  // Throttle calibration methods
+  void startThrottleCalibration();
+  void updateThrottleCalibration(uint16_t minValue, uint16_t maxValue);
+  void resetThrottleCalibration();
+  bool isThrottleCalibrating();
+  bool isThrottleCalibrated();
+  uint16_t getThrottleMin();
+  uint16_t getThrottleMax();
+  
+  // Debug methods
+  void debugThrottleCalibration();
 };
 
 #endif // SETTINGS_H

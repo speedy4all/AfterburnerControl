@@ -25,8 +25,7 @@ jest.mock('../../ble/bleManager', () => ({
     sendColorData: jest.fn(),
     sendSettingsData: jest.fn(),
     isConnected: jest.fn(),
-    isSimulatorMode: jest.fn(),
-    getSimulatorWarning: jest.fn(),
+
   },
 }));
 
@@ -109,8 +108,7 @@ describe('AfterburnerScreen', () => {
     expect(typeof bleManager.connect).toBe('function');
     expect(typeof bleManager.disconnect).toBe('function');
     expect(typeof bleManager.isConnected).toBe('function');
-    expect(typeof bleManager.isSimulatorMode).toBe('function');
-    expect(typeof bleManager.getSimulatorWarning).toBe('function');
+
   });
 
   it('should have device functions available', () => {

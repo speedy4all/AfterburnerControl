@@ -1,6 +1,36 @@
 #include "led_effects.h"
 #include <math.h>
 
+/*
+ * Speed Setting Usage:
+ * The speedMs setting (100-5000ms) controls animation timing for various effects:
+ * 
+ * 1. Pulse Mode (Mode 2): Controls how fast the afterburner pulses
+ *    - 100ms = Very fast pulse (10Hz)
+ *    - 1200ms = Medium pulse (0.83Hz) 
+ *    - 5000ms = Slow pulse (0.2Hz)
+ * 
+ * 2. Breathing Effect (Modes 1 & 2): Controls breathing animation speed
+ *    - 100ms = Rapid breathing
+ *    - 1200ms = Normal breathing
+ *    - 5000ms = Slow breathing
+ * 
+ * 3. Flicker Effect: Controls how fast the flicker animation cycles
+ *    - 100ms = Fast flicker
+ *    - 1200ms = Normal flicker
+ *    - 5000ms = Slow flicker
+ * 
+ * 4. Sparkle Effect: Controls sparkle frequency during afterburner
+ *    - 100ms = Many sparkles
+ *    - 1200ms = Normal sparkles
+ *    - 5000ms = Few sparkles
+ */
+
+// Fallback for M_PI if not defined
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 LEDEffects::LEDEffects() {
   leds = nullptr;
   numLeds = 0;
@@ -26,7 +56,7 @@ void LEDEffects::begin(uint16_t ledCount) {
   numLeds = ledCount;
   leds = new CRGB[numLeds];
   
-  FastLED.addLeds<WS2812B, LED_PIN, GRB>(leds, numLeds);
+  FastLED.addLeds<WS2812B, LED_STRIP_PIN, GRB>(leds, numLeds);
   FastLED.setBrightness(200);
   FastLED.clear();
   FastLED.show();
@@ -73,6 +103,14 @@ void LEDEffects::renderCoreEffect(const AfterburnerSettings& settings, float thr
   // Calculate base brightness proportional to throttle
   uint8_t baseBrightness = 30 + (uint8_t)(200 * throttle);
   
+  // Add breathing effect based on speed setting (for Ease and Pulse modes)
+  if (settings.mode == 1 || settings.mode == 2) {
+    // Use speedMs to control breathing frequency
+    float breathingSpeed = 1000.0f / (float)settings.speedMs;
+    float breathing = 0.8f + 0.2f * sin(millis() * breathingSpeed);
+    baseBrightness = (uint8_t)(baseBrightness * breathing);
+  }
+  
   // Render each LED
   for (uint16_t i = 0; i < numLeds; i++) {
     // Interpolate color based on eased throttle
@@ -82,7 +120,7 @@ void LEDEffects::renderCoreEffect(const AfterburnerSettings& settings, float thr
     color.nscale8(baseBrightness);
     
     // Add flicker effect
-    addFlicker(i, 20);
+    addFlicker(i, 20, settings);
     
     // Set the LED
     leds[i] = color;
@@ -103,7 +141,10 @@ void LEDEffects::renderAfterburnerOverlay(const AfterburnerSettings& settings, f
   
   // Apply pulse modulation for Pulse mode
   if (settings.mode == 2) {
-    float pulse = 0.6f + 0.4f * sin(millis() * 0.12f);
+    // Use speedMs to control pulse frequency (faster speed = faster pulse)
+    // Convert speedMs to frequency: 100ms = fast pulse, 5000ms = slow pulse
+    float pulseFrequency = 1000.0f / (float)settings.speedMs;
+    float pulse = 0.6f + 0.4f * sin(millis() * pulseFrequency);
     abIntensity *= pulse;
   }
   
@@ -111,7 +152,7 @@ void LEDEffects::renderAfterburnerOverlay(const AfterburnerSettings& settings, f
   for (uint16_t i = 0; i < numLeds; i++) {
     // Calculate spatial profile (stronger in center)
     float position = (float)i / numLeds;
-    float spatialProfile = 0.65f + 0.35f * sin(2.0f * PI * position);
+    float spatialProfile = 0.65f + 0.35f * sin(2.0f * M_PI * position);
     
     // Blend afterburner colors based on throttle
     CRGB abColor = lerpColor(abCoreColor1, abCoreColor2, throttle);
@@ -126,7 +167,7 @@ void LEDEffects::renderAfterburnerOverlay(const AfterburnerSettings& settings, f
   
   // Add sparkles when afterburner is strong
   if (abIntensity > 0.4f) {
-    addSparkles(abIntensity);
+    addSparkles(abIntensity, settings);
   }
 }
 
@@ -143,9 +184,11 @@ float LEDEffects::getEasedThrottle(float throttle, uint8_t mode) {
   }
 }
 
-void LEDEffects::addFlicker(uint16_t ledIndex, uint8_t intensity) {
-  // Generate noise-based flicker
-  uint8_t noise = inoise8(ledIndex * 12, (millis() + ledIndex * 7) * 8 + noiseOffset);
+void LEDEffects::addFlicker(uint16_t ledIndex, uint8_t intensity, const AfterburnerSettings& settings) {
+  // Generate noise-based flicker using FastLED noise functions
+  // Use speedMs to control flicker speed (faster speed = faster flicker)
+  float flickerSpeed = 1000.0f / (float)settings.speedMs;
+  uint8_t noise = inoise8(ledIndex * 12, (millis() * flickerSpeed + ledIndex * 7) * 8 + noiseOffset);
   
   // Map noise to flicker range
   int8_t flicker = map(noise, 0, 255, -intensity, intensity);
@@ -154,10 +197,14 @@ void LEDEffects::addFlicker(uint16_t ledIndex, uint8_t intensity) {
   leds[ledIndex].addToRGB(flicker);
 }
 
-void LEDEffects::addSparkles(float abIntensity) {
+void LEDEffects::addSparkles(float abIntensity, const AfterburnerSettings& settings) {
   // Add random white sparkles
+  // Use speedMs to control sparkle frequency (faster speed = more sparkles)
+  float sparkleFrequency = 1000.0f / (float)settings.speedMs;
+  uint16_t sparkleChance = (uint16_t)(abIntensity * 50 * sparkleFrequency);
+  
   for (uint16_t i = 0; i < numLeds; i++) {
-    if (random(1000) < (abIntensity * 50)) {
+    if (random(1000) < sparkleChance) {
       uint8_t sparkleIntensity = random(50, 150);
       leds[i] += CRGB(sparkleIntensity, sparkleIntensity, sparkleIntensity);
     }

@@ -15,6 +15,7 @@ interface ColorInputProps {
   color: { r: number; g: number; b: number };
   onColorChange: (color: { r: number; g: number; b: number }) => void;
   onSend?: () => void;
+  isDarkTheme?: boolean;
 }
 
 export const ColorInput: React.FC<ColorInputProps> = ({
@@ -22,6 +23,7 @@ export const ColorInput: React.FC<ColorInputProps> = ({
   color,
   onColorChange,
   onSend,
+  isDarkTheme = false,
 }) => {
   const [showColorPicker, setShowColorPicker] = useState(false);
 
@@ -59,20 +61,20 @@ export const ColorInput: React.FC<ColorInputProps> = ({
   ];
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isDarkTheme && styles.containerDark]}>
       <View style={styles.header}>
-        <Text style={styles.label}>{label}</Text>
+        <Text style={[styles.label, isDarkTheme && styles.labelDark]}>{label}</Text>
         <TouchableOpacity
-          style={[styles.colorSwatch, colorStyle]}
+          style={[styles.colorSwatch, isDarkTheme && styles.colorSwatchDark, colorStyle]}
           onPress={() => setShowColorPicker(true)}
         />
       </View>
       
       <View style={styles.infoRow}>
-        <Text style={styles.colorInfo}>
+        <Text style={[styles.colorInfo, isDarkTheme && styles.colorInfoDark]}>
           RGB({color.r}, {color.g}, {color.b})
         </Text>
-        <Text style={styles.colorInfo}>{colorHex}</Text>
+        <Text style={[styles.colorInfo, isDarkTheme && styles.colorInfoDark]}>{colorHex}</Text>
       </View>
 
       {onSend && (
@@ -88,9 +90,9 @@ export const ColorInput: React.FC<ColorInputProps> = ({
         onRequestClose={() => setShowColorPicker(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select {label}</Text>
+          <View style={[styles.modalContent, isDarkTheme && styles.modalContentDark]}>
+            <View style={[styles.modalHeader, isDarkTheme && styles.modalHeaderDark]}>
+              <Text style={[styles.modalTitle, isDarkTheme && styles.modalTitleDark]}>Select {label}</Text>
               <TouchableOpacity
                 style={styles.closeButton}
                 onPress={() => setShowColorPicker(false)}
@@ -101,13 +103,14 @@ export const ColorInput: React.FC<ColorInputProps> = ({
             
             <ScrollView style={styles.colorPickerContainer}>
               {/* Predefined Colors */}
-              <Text style={styles.sectionTitle}>Quick Colors</Text>
+              <Text style={[styles.sectionTitle, isDarkTheme && styles.sectionTitleDark]}>Quick Colors</Text>
               <View style={styles.predefinedColors}>
                 {predefinedColors.map((predefinedColor, index) => (
                   <TouchableOpacity
                     key={index}
                     style={[
                       styles.predefinedColor,
+                      isDarkTheme && styles.predefinedColorDark,
                       { backgroundColor: `rgb(${predefinedColor.r}, ${predefinedColor.g}, ${predefinedColor.b})` }
                     ]}
                     onPress={() => handleColorChange(predefinedColor)}
@@ -116,10 +119,10 @@ export const ColorInput: React.FC<ColorInputProps> = ({
               </View>
 
               {/* RGB Sliders */}
-              <Text style={styles.sectionTitle}>Custom RGB</Text>
+              <Text style={[styles.sectionTitle, isDarkTheme && styles.sectionTitleDark]}>Custom RGB</Text>
               
               <View style={styles.sliderContainer}>
-                <Text style={styles.sliderLabel}>Red: {color.r} (0-255)</Text>
+                <Text style={[styles.sliderLabel, isDarkTheme && styles.sliderLabelDark]}>Red: {color.r} (0-255)</Text>
                 <Slider
                   style={styles.slider}
                   minimumValue={0}
@@ -127,12 +130,13 @@ export const ColorInput: React.FC<ColorInputProps> = ({
                   value={color.r}
                   onValueChange={(value) => handleColorChange({ ...color, r: Math.round(value) })}
                   minimumTrackTintColor="#FF0000"
-                  maximumTrackTintColor="#CCCCCC"
+                  maximumTrackTintColor="#555555"
+                  thumbStyle={{ backgroundColor: '#FF0000' }}
                 />
               </View>
 
               <View style={styles.sliderContainer}>
-                <Text style={styles.sliderLabel}>Green: {color.g} (0-255)</Text>
+                <Text style={[styles.sliderLabel, isDarkTheme && styles.sliderLabelDark]}>Green: {color.g} (0-255)</Text>
                 <Slider
                   style={styles.slider}
                   minimumValue={0}
@@ -140,12 +144,13 @@ export const ColorInput: React.FC<ColorInputProps> = ({
                   value={color.g}
                   onValueChange={(value) => handleColorChange({ ...color, g: Math.round(value) })}
                   minimumTrackTintColor="#00FF00"
-                  maximumTrackTintColor="#CCCCCC"
+                  maximumTrackTintColor="#555555"
+                  thumbStyle={{ backgroundColor: '#00FF00' }}
                 />
               </View>
 
               <View style={styles.sliderContainer}>
-                <Text style={styles.sliderLabel}>Blue: {color.b} (0-255)</Text>
+                <Text style={[styles.sliderLabel, isDarkTheme && styles.sliderLabelDark]}>Blue: {color.b} (0-255)</Text>
                 <Slider
                   style={styles.slider}
                   minimumValue={0}
@@ -153,18 +158,19 @@ export const ColorInput: React.FC<ColorInputProps> = ({
                   value={color.b}
                   onValueChange={(value) => handleColorChange({ ...color, b: Math.round(value) })}
                   minimumTrackTintColor="#0000FF"
-                  maximumTrackTintColor="#CCCCCC"
+                  maximumTrackTintColor="#555555"
+                  thumbStyle={{ backgroundColor: '#0000FF' }}
                 />
               </View>
 
               {/* Current Color Preview */}
-              <View style={styles.currentColorContainer}>
-                <Text style={styles.sectionTitle}>Current Color</Text>
-                <View style={[styles.currentColorPreview, colorStyle]} />
-                <Text style={styles.colorInfo}>
+              <View style={[styles.currentColorContainer, isDarkTheme && styles.currentColorContainerDark]}>
+                <Text style={[styles.sectionTitle, isDarkTheme && styles.sectionTitleDark]}>Current Color</Text>
+                <View style={[styles.currentColorPreview, isDarkTheme && styles.currentColorPreviewDark, colorStyle]} />
+                <Text style={[styles.colorInfo, isDarkTheme && styles.colorInfoDark]}>
                   RGB({color.r}, {color.g}, {color.b})
                 </Text>
-                <Text style={styles.colorInfo}>{colorHex}</Text>
+                <Text style={[styles.colorInfo, isDarkTheme && styles.colorInfoDark]}>{colorHex}</Text>
               </View>
             </ScrollView>
           </View>
@@ -180,8 +186,14 @@ const styles = StyleSheet.create({
   container: {
     marginVertical: 8,
     padding: 12,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#ffffff', // Light container
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0', // Light border
+  },
+  containerDark: {
+    backgroundColor: '#2d2d2d', // Dark container
+    borderColor: '#404040', // Dark border
   },
   header: {
     flexDirection: 'row',
@@ -192,14 +204,17 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: '#333333', // Dark text for light theme
+  },
+  labelDark: {
+    color: '#ffffff', // White text for dark theme
   },
   colorSwatch: {
     width: 50,
     height: 50,
     borderRadius: 25,
     borderWidth: 3,
-    borderColor: '#ddd',
+    borderColor: '#cccccc', // Light border
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -209,6 +224,9 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
     elevation: 5,
   },
+  colorSwatchDark: {
+    borderColor: '#555555', // Dark border
+  },
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -216,12 +234,15 @@ const styles = StyleSheet.create({
   },
   colorInfo: {
     fontSize: 12,
-    color: '#666',
+    color: '#666666', // Dark gray text for light theme
     fontFamily: 'monospace',
     textAlign: 'center',
   },
+  colorInfoDark: {
+    color: '#cccccc', // Light gray text for dark theme
+  },
   sendButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#3b82f6', // Blue button
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 6,
@@ -234,12 +255,12 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)', // Darker overlay
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: 'white',
+    backgroundColor: '#ffffff', // Light modal background
     borderRadius: 12,
     width: width * 0.9,
     maxWidth: 400,
@@ -253,21 +274,30 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 10,
   },
+  modalContentDark: {
+    backgroundColor: '#1a1a1a', // Dark modal background
+  },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: '#e0e0e0', // Light border
+  },
+  modalHeaderDark: {
+    borderBottomColor: '#404040', // Dark border
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: '#333333', // Dark text for light theme
+  },
+  modalTitleDark: {
+    color: '#ffffff', // White text for dark theme
   },
   closeButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#3b82f6', // Blue button
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 6,
@@ -283,9 +313,12 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: '#333333', // Dark text for light theme
     marginBottom: 12,
     marginTop: 8,
+  },
+  sectionTitleDark: {
+    color: '#ffffff', // White text for dark theme
   },
   predefinedColors: {
     flexDirection: 'row',
@@ -299,15 +332,21 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     margin: 4,
     borderWidth: 2,
-    borderColor: '#ddd',
+    borderColor: '#cccccc', // Light border
+  },
+  predefinedColorDark: {
+    borderColor: '#555555', // Dark border
   },
   sliderContainer: {
     marginBottom: 16,
   },
   sliderLabel: {
     fontSize: 14,
-    color: '#333',
+    color: '#666666', // Dark gray text for light theme
     marginBottom: 8,
+  },
+  sliderLabelDark: {
+    color: '#cccccc', // Light gray text for dark theme
   },
   slider: {
     width: '100%',
@@ -317,15 +356,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 20,
     padding: 16,
-    backgroundColor: '#f8f8f8',
+    backgroundColor: '#f8f9fa', // Light container
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0', // Light border
+  },
+  currentColorContainerDark: {
+    backgroundColor: '#2d2d2d', // Dark container
+    borderColor: '#404040', // Dark border
   },
   currentColorPreview: {
     width: 80,
     height: 80,
     borderRadius: 40,
     borderWidth: 3,
-    borderColor: '#ddd',
+    borderColor: '#cccccc', // Light border
     marginBottom: 12,
+  },
+  currentColorPreviewDark: {
+    borderColor: '#555555', // Dark border
   },
 });

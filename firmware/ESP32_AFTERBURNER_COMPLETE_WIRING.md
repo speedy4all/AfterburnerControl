@@ -1,47 +1,49 @@
-# ESP32 C3 Afterburner - Complete Wiring Diagram
+# ESP32-C3 OLED Development Board Afterburner - Complete Wiring Diagram
 
-This document provides a comprehensive wiring guide for the ESP32 C3 Afterburner project, including all components and their connections.
+This document provides a comprehensive wiring guide for the ESP32-C3 OLED Development Board Afterburner project, including all components and their connections.
 
 ## Project Overview
 
-The ESP32 C3 Afterburner project consists of:
+The ESP32-C3 OLED Development Board Afterburner project consists of:
 
-- **ESP32 C3 OLED Development Board** (main controller)
+- **ESP32-C3 OLED Development Board** (main controller with built-in OLED)
 - **0.42-inch OLED Display** (built-in, shows status and settings)
 - **Navigation Button** (manual page control)
 - **Throttle Input** (PWM signal from RC receiver or potentiometer)
 - **WS2812B LED Strip** (afterburner effect display)
 - **Power Supply** (3.3V and 5V)
 
-## Complete Pinout Diagram
+## ESP32-C3 OLED Development Board Pinout
+
+The ESP32-C3 OLED Development Board is a compact development board with a built-in 0.42-inch OLED display and the following pin layout:
 
 ```
-ESP32 C3 OLED Development Board
+ESP32-C3 OLED Development Board
 ┌─────────────────────────────────────────────────────────┐
 │                                                         │
 │  ┌─────────────────┐                                    │
 │  │  0.42" OLED    │ ← Built-in display (I2C)           │
-│  │  128x64 pixels │   SDA: GPIO4, SCL: GPIO5           │
-│  │  Starting:13,14│                                    │
+│  │  128x64 pixels │   SCL: GPIO6, SDA: GPIO5           │
+│  │  Built-in      │                                    │
 │  └─────────────────┘                                    │
 │                                                         │
 │  ┌─────────────────┐                                    │
-│  │   Navigation    │ ← GPIO2 (with pull-up)            │
+│  │   Navigation    │ ← GPIO2 (ADC2)                     │
 │  │     Button      │                                    │
 │  └─────────────────┘                                    │
 │                                                         │
 │  ┌─────────────────┐                                    │
-│  │     BOOT        │ ← GPIO0 (programming button)      │
+│  │     BOOT        │ ← GPIO0 (ADC0, programming button) │
 │  │    Button       │                                    │
 │  └─────────────────┘                                    │
 │                                                         │
 │  ┌─────────────────┐                                    │
-│  │     RST         │ ← Reset button                    │
+│  │     RST         │ ← Reset button                     │
 │  │    Button       │                                    │
 │  └─────────────────┘                                    │
 │                                                         │
 │  ┌─────────────────┐                                    │
-│  │   USB-C Port    │ ← Programming and power           │
+│  │   USB-C Port    │ ← Programming and power            │
 │  └─────────────────┘                                    │
 │                                                         │
 │  ┌─────────────────┐                                    │
@@ -51,29 +53,28 @@ ESP32 C3 OLED Development Board
 │                                                         │
 └─────────────────────────────────────────────────────────┘
 
-Pin Headers (Left Side):
+Left Side Pin Headers (from top to bottom):
 ┌─────────┐
-│  3      │ ← GPIO3 (UART RX)
-│  4      │ ← GPIO4 (I2C SDA - OLED)
-│  5      │ ← GPIO5 (I2C SCL - OLED)
-│  6      │ ← GPIO6 (Available)
-│  7      │ ← GPIO7 (Available)
-│  8      │ ← GPIO8 (Available)
-│  9      │ ← GPIO9 (Available)
-│  10     │ ← GPIO10 (Available)
-│  PWR    │ ← Power indicator
+│  5V     │ ← 5V power input/output
+│  GND    │ ← Ground
+│  3V3    │ ← 3.3V power input/output
+│  RX     │ ← GPIO20 (UART RX)
+│  TX     │ ← GPIO21 (UART TX)
+│  A2     │ ← GPIO2 (ADC2) - Navigation Button
+│  A1     │ ← GPIO1 (ADC1) - Throttle Input
+│  A0     │ ← GPIO0 (ADC0) - BOOT button
 └─────────┘
 
-Pin Headers (Right Side):
+Right Side Pin Headers (from top to bottom):
 ┌─────────┐
-│  0      │ ← GPIO0 (BOOT button)
-│  1      │ ← GPIO1 (UART TX)
-│  2      │ ← GPIO2 (Navigation button)
-│  TX     │ ← UART TX (GPIO1)
-│  RX     │ ← UART RX (GPIO3)
-│  V3     │ ← 3.3V power
-│  GD     │ ← Ground
-│  V5     │ ← 5V power
+│  GPIO10 │ ← Available for future use
+│  GPIO9  │ ← SCL (I2C Clock) - Available
+│  GPIO8  │ ← SDA (I2C Data) - Available
+│  GPIO7  │ ← SS (SPI) - LED Data
+│  GPIO6  │ ← MOSI (SPI) - OLED SCL
+│  GPIO5  │ ← MISO (SPI) - OLED SDA
+│  GPIO4  │ ← A4 (ADC4) - Available
+│  GPIO3  │ ← A3 (ADC3) - Available
 └─────────┘
 ```
 
@@ -82,18 +83,20 @@ Pin Headers (Right Side):
 ### 1. OLED Display (Built-in)
 
 ```
-Internal Connections:
-OLED SDA ──── GPIO4 (I2C Data)
-OLED SCL ──── GPIO5 (I2C Clock)
+The 0.42 inch OLED is built into the board and uses:
+OLED SCL ──── GPIO6 (I2C Clock)
+OLED SDA ──── GPIO5 (I2C Data)
 OLED VCC ──── 3.3V (Internal)
 OLED GND ──── GND (Internal)
+
+Note: No external connections needed - display is integrated
 ```
 
 ### 2. Navigation Button
 
 ```
 External Button:
-Button Pin 1 ──── GPIO2
+Button Pin 1 ──── GPIO2 (A2 pin)
 Button Pin 2 ──── GND
 ```
 
@@ -101,7 +104,7 @@ Button Pin 2 ──── GND
 
 ```
 RC Receiver or Potentiometer:
-Signal Wire ──── GPIO34 (THR_PIN)
+Signal Wire ──── GPIO1 (A1 pin)
 Power (if needed) ──── 3.3V or 5V
 Ground ──── GND
 ```
@@ -110,8 +113,8 @@ Ground ──── GND
 
 ```
 LED Strip:
-Data In ──── GPIO18 (LED_PIN)
-VCC ──── 5V (from V5 pin or external 5V supply)
+Data In ──── GPIO21
+VCC ──── 5V (from 5V pin or external 5V supply)
 GND ──── GND
 ```
 
@@ -120,17 +123,37 @@ GND ──── GND
 ```
 Power Connections:
 USB-C ──── 5V (for programming and power)
-V5 Pin ──── 5V (for LED strip)
-V3 Pin ──── 3.3V (for sensors if needed)
+5V Pin ──── 5V (for LED strip)
+3V3 Pin ──── 3.3V (for sensors if needed)
 GND ──── Ground (common)
 ```
+
+## Updated Pin Assignments for ESP32-C3 OLED Board
+
+Based on the actual board pinout, here are the correct pin assignments:
+
+| Pin    | Function    | Direction     | Notes                |
+| ------ | ----------- | ------------- | -------------------- |
+| GPIO0  | BOOT Button | Input         | Programming mode     |
+| GPIO1  | ADC1        | Input         | Throttle input       |
+| GPIO2  | ADC2        | Input         | Navigation button    |
+| GPIO3  | ADC3        | Input         | Available            |
+| GPIO4  | ADC4        | Input         | Available            |
+| GPIO5  | I2C SDA     | Bidirectional | OLED display         |
+| GPIO6  | I2C SCL     | Output        | OLED display         |
+| GPIO7  | SS (SPI)    | Output        | Available            |
+| GPIO8  | SDA (I2C)   | Bidirectional | Available            |
+| GPIO9  | SCL (I2C)   | Output        | Available            |
+| GPIO10 | Available   | -             | Available            |
+| GPIO20 | UART RX     | Input         | Serial communication |
+| GPIO21 | UART TX     | Output        | LED data             |
 
 ## Detailed Wiring Guide
 
 ### Step 1: Navigation Button
 
 ```
-1. Connect one terminal of momentary push button to GPIO2
+1. Connect one terminal of momentary push button to GPIO2 (A2 pin)
 2. Connect other terminal to GND
 3. Internal pull-up resistor keeps pin HIGH when not pressed
 4. Button press connects GPIO2 to GND (LOW)
@@ -140,12 +163,12 @@ GND ──── Ground (common)
 
 ```
 Option A - RC Receiver:
-1. Connect receiver signal wire to GPIO34
+1. Connect receiver signal wire to GPIO1 (A1 pin)
 2. Connect receiver power to 3.3V or 5V (check receiver specs)
 3. Connect receiver ground to GND
 
 Option B - Potentiometer:
-1. Connect potentiometer wiper to GPIO34
+1. Connect potentiometer wiper to GPIO1 (A1 pin)
 2. Connect one end to 3.3V
 3. Connect other end to GND
 ```
@@ -153,8 +176,8 @@ Option B - Potentiometer:
 ### Step 3: LED Strip
 
 ```
-1. Connect LED strip data line to GPIO18
-2. Connect LED strip VCC to 5V (V5 pin or external supply)
+1. Connect LED strip data line to GPIO21
+2. Connect LED strip VCC to 5V (5V pin or external supply)
 3. Connect LED strip GND to GND
 4. Ensure adequate power supply for LED count
 ```
@@ -166,85 +189,62 @@ For LED strips with many LEDs:
 1. Use external 5V power supply for LED strip
 2. Connect LED strip VCC to external 5V
 3. Connect LED strip GND to ESP32 GND
-4. Keep data line connected to GPIO18
+4. Keep data line connected to GPIO21
 ```
 
-## Pin Usage Summary
+## ESP32-C3 OLED Board Specific Notes
 
-| Pin    | Function          | Direction     | Notes                |
-| ------ | ----------------- | ------------- | -------------------- |
-| GPIO0  | BOOT Button       | Input         | Programming mode     |
-| GPIO1  | UART TX           | Output        | Serial communication |
-| GPIO2  | Navigation Button | Input         | OLED page control    |
-| GPIO3  | UART RX           | Input         | Serial communication |
-| GPIO4  | I2C SDA           | Bidirectional | OLED display         |
-| GPIO5  | I2C SCL           | Output        | OLED display         |
-| GPIO6  | Available         | -             | Future use           |
-| GPIO7  | Available         | -             | Future use           |
-| GPIO8  | Available         | -             | Future use           |
-| GPIO9  | Available         | -             | Future use           |
-| GPIO10 | Available         | -             | Future use           |
-| GPIO18 | LED Data          | Output        | WS2812B strip        |
-| GPIO34 | Throttle Input    | Input         | PWM signal           |
+### Built-in OLED Display
 
-## Power Requirements
+The board features a built-in 0.42 inch OLED display:
 
-### ESP32 C3 Board
+- **Resolution**: 128x64 pixels
+- **Interface**: I2C (internal)
+- **Pins**: GPIO6 (SCL), GPIO5 (SDA)
+- **Power**: 3.3V (internal)
+- **No external connections required**
 
-- **Voltage**: 5V via USB-C or V5 pin
-- **Current**: ~100-200mA (without LEDs)
-- **Power**: ~0.5-1W
+### Pin Availability
 
-### LED Strip
+The ESP32-C3 OLED board has limited GPIO pins:
 
-- **Voltage**: 5V
-- **Current**: ~60mA per LED at full brightness
-- **Power**: ~0.3W per LED
+- **GPIO0-GPIO2**: System and ADC functions
+- **GPIO3-GPIO4**: Available ADC inputs
+- **GPIO5-GPIO6**: Built-in OLED (not available for external use)
+- **GPIO21**: LED data output
+- **GPIO8-GPIO10**: Available for future use
+- **GPIO20-GPIO21**: UART communication
 
-### Total Power Requirements
+### I2C Configuration
 
-- **45 LEDs**: ~2.7A at 5V (13.5W)
-- **100 LEDs**: ~6A at 5V (30W)
-- **Recommendation**: Use external 5V power supply for LED strips
+The board has one I2C interface:
 
-## Safety Considerations
+- **Internal I2C**: GPIO5/6 for built-in OLED
+- **External I2C**: GPIO8/9 available for additional devices
 
-### Power Supply
+### Power Management
 
-1. **Use adequate power supply** for LED count
-2. **Add capacitors** near LED strip for stability
-3. **Check voltage levels** before connecting
-4. **Use proper wire gauge** for current requirements
+The board provides:
 
-### Connections
-
-1. **Double-check polarity** before powering on
-2. **Secure connections** to prevent shorts
-3. **Use heat shrink** or electrical tape for insulation
-4. **Test with multimeter** before final assembly
-
-### LED Strip
-
-1. **Cut only at marked points** on LED strip
-2. **Check data flow direction** (arrow on strip)
-3. **Limit strip length** to prevent voltage drop
-4. **Add power injection** for long strips
+- **USB-C**: 5V input for programming and power
+- **5V Pin**: 5V output (max ~500mA)
+- **3V3 Pin**: 3.3V regulated output (max ~300mA)
 
 ## Testing Procedure
 
 ### 1. Basic Functionality
 
 ```
-1. Upload code to ESP32 C3
+1. Upload code to ESP32-C3 OLED board
 2. Open Serial Monitor (115200 baud)
 3. Check for startup messages
-4. Verify OLED display shows startup screen
+4. Verify built-in OLED shows startup screen
 ```
 
 ### 2. Button Testing
 
 ```
-1. Press navigation button
+1. Press navigation button on GPIO2
 2. Check Serial Monitor for button press messages
 3. Verify OLED pages advance
 4. Test button debounce (rapid pressing)
@@ -253,7 +253,7 @@ For LED strips with many LEDs:
 ### 3. Throttle Testing
 
 ```
-1. Connect throttle input
+1. Connect throttle input to GPIO1 (A1 pin)
 2. Move throttle through full range
 3. Check Serial Monitor for throttle values
 4. Verify OLED shows throttle percentage
@@ -281,15 +281,22 @@ For LED strips with many LEDs:
 
 ### Common Issues
 
-1. **OLED not working**: Check I2C connections and power
-2. **Button not responding**: Verify wiring and pin configuration
-3. **LEDs not lighting**: Check power supply and data connection
-4. **Throttle not reading**: Verify PWM signal and pin connection
+1. **OLED not working**: Built-in display should work automatically
+2. **Button not responding**: Verify wiring and pin configuration on GPIO2
+3. **LEDs not lighting**: Check power supply and data connection to GPIO7
+4. **Throttle not reading**: Verify PWM signal and pin connection to GPIO1
 5. **BLE not connecting**: Check antenna and power supply
+
+### ESP32-C3 OLED Board Specific Issues
+
+1. **Built-in OLED**: Should work without any external connections
+2. **Limited GPIO pins**: Plan pin usage carefully
+3. **Power limitations**: Use external power for high-current components
+4. **Upload issues**: Hold BOOT button during upload
 
 ### Debug Information
 
 - Serial Monitor shows all system status
-- OLED displays current settings and status
+- Built-in OLED displays current settings and status
 - BLE app provides remote control and monitoring
 - LED patterns indicate system state

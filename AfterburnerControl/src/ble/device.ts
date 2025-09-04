@@ -1,4 +1,4 @@
-import { bleManager } from './bleManager';
+import bleManager from './bleManager';
 import { BLE_UUIDS, DEFAULT_VALUES } from './uuids';
 
 // Types for the afterburner settings
@@ -15,6 +15,34 @@ export interface AfterburnerSettings {
 export interface DeviceStatus {
   throttle: number;
   mode: number;
+}
+
+// Global status callback for UI updates
+let statusCallback: ((status: DeviceStatus) => void) | null = null;
+
+// Global calibration status callback for UI updates
+let calibrationStatusCallback: ((status: {isCalibrated: boolean, min: number, max: number, minVisits?: number, maxVisits?: number}) => void) | null = null;
+
+// Set status callback for UI updates
+export function setStatusCallback(callback: (status: DeviceStatus) => void): void {
+  statusCallback = callback;
+}
+
+// Clear status callback
+export function clearStatusCallback(): void {
+  statusCallback = null;
+}
+
+// Set calibration status callback for UI updates
+export function setCalibrationStatusCallback(callback: (status: {
+  isCalibrated: boolean, min: number, max: number, minVisits?: number, maxVisits?: number
+}) => void): void {
+  calibrationStatusCallback = callback;
+}
+
+// Clear calibration status callback
+export function clearCalibrationStatusCallback(): void {
+  calibrationStatusCallback = null;
 }
 
 // Helper function to convert RGB color to byte array
@@ -48,6 +76,49 @@ export async function connectToAfterburner(): Promise<boolean> {
 
     // Connect to device
     await bleManager.connectToDevice(device);
+    
+    // Discover services and characteristics
+    await bleManager.discoverServices(device.id);
+    
+    // Start status monitoring to keep connection alive
+    try {
+      await bleManager.startStatusMonitoring((status) => {
+        // Parse and emit status to UI components
+        if (status.error) {
+          console.warn('Status update error:', status.error);
+        } else if (status.throttle !== undefined && status.mode !== undefined) {
+          // Valid status received - only log when there are changes
+          const uiStatus = {
+            throttle: status.throttle, // Already in correct format
+            mode: status.mode
+          };
+          
+          // Store the latest status for the UI to access
+          // This is a simple approach - in a real app you might use a callback or event emitter
+          // console.log('UI status ready:', uiStatus); // Reduced logging
+          
+          // Call the UI callback if it's set
+          if (statusCallback) {
+            statusCallback(uiStatus);
+          }
+        }
+      });
+      
+      // Start calibration status monitoring
+      try {
+        await startCalibrationStatusMonitoring();
+      } catch (error) {
+        console.warn('Failed to start calibration status monitoring:', error);
+        // Continue anyway - calibration should still work
+      }
+      
+      // Start connection keep-alive
+      bleManager.startConnectionKeepAlive();
+    } catch (error) {
+      console.warn('Failed to start status monitoring:', error);
+      // Continue anyway - connection should still work
+    }
+    
     return true;
   } catch (error) {
     console.error('Failed to connect to Afterburner:', error);
@@ -57,12 +128,21 @@ export async function connectToAfterburner(): Promise<boolean> {
 
 // Disconnect from device
 export async function disconnectFromAfterburner(): Promise<void> {
+  // Stop keep-alive and monitoring before disconnecting
+  bleManager.stopConnectionKeepAlive();
   await bleManager.disconnect();
 }
 
+
+
 // Write mode setting
 export async function writeMode(mode: number): Promise<void> {
-  await bleManager.writeCharacteristic(BLE_UUIDS.MODE, [mode]);
+  try {
+    await bleManager.writeCharacteristic(BLE_UUIDS.MODE, [mode]);
+  } catch (error) {
+    console.error('Failed to write mode:', error);
+    throw error;
+  }
 }
 
 // Write start color
@@ -103,21 +183,88 @@ export async function savePreset(): Promise<void> {
 // Read current settings from device
 export async function readSettings(): Promise<AfterburnerSettings> {
   try {
-    const mode = (await bleManager.readCharacteristic(BLE_UUIDS.MODE))[0];
-    const startColorBytes = await bleManager.readCharacteristic(BLE_UUIDS.START_COLOR);
-    const endColorBytes = await bleManager.readCharacteristic(BLE_UUIDS.END_COLOR);
-    const speedMsBytes = await bleManager.readCharacteristic(BLE_UUIDS.SPEED_MS);
-    const brightness = (await bleManager.readCharacteristic(BLE_UUIDS.BRIGHTNESS))[0];
-    const numLedsBytes = await bleManager.readCharacteristic(BLE_UUIDS.NUM_LEDS);
-    const abThreshold = (await bleManager.readCharacteristic(BLE_UUIDS.AB_THRESHOLD))[0];
+    // Add a small delay to ensure BLE connection is stable
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Read each characteristic with individual error handling
+    let mode = DEFAULT_VALUES.mode;
+    try {
+      const modeBytes = await bleManager.readCharacteristic(BLE_UUIDS.MODE);
+      if (modeBytes.length > 0) {
+        mode = modeBytes[0];
+      }
+    } catch (error) {
+      console.warn('Failed to read mode:', error);
+    }
+
+    let startColor = DEFAULT_VALUES.startColor;
+    try {
+      const startColorBytes = await bleManager.readCharacteristic(BLE_UUIDS.START_COLOR);
+      if (startColorBytes.length >= 3) {
+        startColor = { r: startColorBytes[0], g: startColorBytes[1], b: startColorBytes[2] };
+      }
+    } catch (error) {
+      console.warn('Failed to read start color:', error);
+    }
+
+    let endColor = DEFAULT_VALUES.endColor;
+    try {
+      const endColorBytes = await bleManager.readCharacteristic(BLE_UUIDS.END_COLOR);
+      if (endColorBytes.length >= 3) {
+        endColor = { r: endColorBytes[0], g: endColorBytes[1], b: endColorBytes[2] };
+      }
+    } catch (error) {
+      console.warn('Failed to read end color:', error);
+    }
+
+    let speedMs = DEFAULT_VALUES.speedMs;
+    try {
+      const speedMsBytes = await bleManager.readCharacteristic(BLE_UUIDS.SPEED_MS);
+      if (speedMsBytes.length >= 2) {
+        speedMs = speedMsBytes[0] | (speedMsBytes[1] << 8); // little-endian
+      }
+    } catch (error) {
+      console.warn('Failed to read speed:', error);
+    }
+
+    let brightness = DEFAULT_VALUES.brightness;
+    try {
+      const brightnessBytes = await bleManager.readCharacteristic(BLE_UUIDS.BRIGHTNESS);
+      if (brightnessBytes.length > 0) {
+        brightness = brightnessBytes[0];
+      }
+    } catch (error) {
+      console.warn('Failed to read brightness:', error);
+    }
+
+    let numLeds = DEFAULT_VALUES.numLeds;
+    try {
+      const numLedsBytes = await bleManager.readCharacteristic(BLE_UUIDS.NUM_LEDS);
+      if (numLedsBytes.length >= 2) {
+        numLeds = numLedsBytes[0] | (numLedsBytes[1] << 8); // little-endian
+      }
+    } catch (error) {
+      console.warn('Failed to read num LEDs:', error);
+    }
+
+    let abThreshold = DEFAULT_VALUES.abThreshold;
+    try {
+      const abThresholdBytes = await bleManager.readCharacteristic(BLE_UUIDS.AB_THRESHOLD);
+      if (abThresholdBytes.length > 0) {
+        abThreshold = abThresholdBytes[0];
+      }
+    } catch (error) {
+      console.warn('Failed to read AB threshold:', error);
+    }
+
 
     return {
       mode,
-      startColor: { r: startColorBytes[0], g: startColorBytes[1], b: startColorBytes[2] },
-      endColor: { r: endColorBytes[0], g: endColorBytes[1], b: endColorBytes[2] },
-      speedMs: speedMsBytes[0] | (speedMsBytes[1] << 8), // little-endian
+      startColor,
+      endColor,
+      speedMs,
       brightness,
-      numLeds: numLedsBytes[0] | (numLedsBytes[1] << 8), // little-endian
+      numLeds,
       abThreshold,
     };
   } catch (error) {
@@ -129,6 +276,7 @@ export async function readSettings(): Promise<AfterburnerSettings> {
 
 // Push all settings to device
 export async function pushAllSettings(settings: AfterburnerSettings): Promise<void> {
+  // Write all settings
   await writeMode(settings.mode);
   await writeStartColor(settings.startColor);
   await writeEndColor(settings.endColor);
@@ -136,20 +284,53 @@ export async function pushAllSettings(settings: AfterburnerSettings): Promise<vo
   await writeBrightness(settings.brightness);
   await writeNumLeds(settings.numLeds);
   await writeAbThreshold(settings.abThreshold);
+  
+  // Save settings to ESP32 flash memory
+  await savePreset();
 }
 
 // Monitor device status
 export async function monitorStatus(callback: (status: DeviceStatus) => void): Promise<() => void> {
-  return await bleManager.monitorCharacteristic(BLE_UUIDS.STATUS, (data) => {
-    try {
-      // Parse JSON status from UTF-8 data
-      const jsonString = String.fromCharCode(...data);
-      const status = JSON.parse(jsonString) as DeviceStatus;
-      callback(status);
-    } catch (error) {
-      console.error('Failed to parse status:', error);
+  try {
+    return await bleManager.monitorCharacteristic(BLE_UUIDS.STATUS, (data) => {
+      try {
+        // Validate data
+        if (!data || data.length === 0) {
+          console.warn('Received empty status data');
+          return;
+        }
+        
+        // Parse JSON status from UTF-8 data
+        const jsonString = String.fromCharCode(...data);
+        if (!jsonString || jsonString.trim() === '') {
+          console.warn('Received empty JSON string from status');
+          return;
+        }
+        
+        const status = JSON.parse(jsonString) as DeviceStatus;
+        
+        // Validate status object
+        if (typeof status.throttle === 'number' && typeof status.mode === 'number') {
+          callback(status);
+        } else {
+          console.warn('Invalid status format:', status);
+        }
+      } catch (error) {
+        console.error('Failed to parse status:', error, 'Raw data:', data);
+      }
+    });
+  } catch (error) {
+    console.error('Failed to setup status monitoring:', error);
+    
+    // Check if device is disconnected
+    if (error instanceof Error && 
+        (error.message.includes('disconnected') || 
+         error.message.includes('BLE operation failed'))) {
+      throw new Error('Device disconnected - cannot setup status monitoring');
     }
-  });
+    
+    throw error;
+  }
 }
 
 // Check if device is connected
@@ -160,4 +341,98 @@ export function isConnected(): boolean {
 // Get connected device info
 export function getConnectedDevice() {
   return bleManager.getConnectedDevice();
+}
+
+// Start monitoring calibration status notifications
+async function startCalibrationStatusMonitoring(): Promise<void> {
+  try {
+    // Start monitoring the throttle calibration status characteristic
+    await bleManager.monitorCharacteristic(BLE_UUIDS.THROTTLE_CALIBRATION_STATUS, (data) => {
+      try {
+        if (data && data.length >= 5) {
+          // Parse the status data
+          // Format: [isCalibrated: 1 byte, min: 2 bytes, max: 2 bytes, minVisits?: 1 byte, maxVisits?: 1 byte]
+          const isCalibrated = data[0] === 1;
+          const min = (data[2] << 8) | data[1]; // Little-endian 16-bit
+          const max = (data[4] << 8) | data[3]; // Little-endian 16-bit
+          
+          // Check if this is progress data (7 bytes) or final status (5 bytes)
+          let minVisits = 0;
+          let maxVisits = 0;
+          if (data.length >= 7) {
+            minVisits = data[5];
+            maxVisits = data[6];
+          }
+          
+          // Call the UI callback if it's set
+          if (calibrationStatusCallback) {
+            calibrationStatusCallback({ isCalibrated, min, max, minVisits, maxVisits });
+          }
+        }
+      } catch (error) {
+        console.error('Failed to parse calibration status:', error);
+      }
+    });
+    
+    // Also read the current status immediately after subscribing
+    try {
+      const currentStatus = await readThrottleCalibrationStatus();
+      
+      // Call the UI callback with current status
+      if (calibrationStatusCallback) {
+        calibrationStatusCallback(currentStatus);
+      }
+    } catch (error) {
+      console.warn('Failed to read initial calibration status after subscribing:', error);
+    }
+  } catch (error) {
+    console.error('Failed to start calibration status monitoring:', error);
+    throw error;
+  }
+}
+
+// Throttle calibration functions
+export async function startThrottleCalibration(): Promise<void> {
+  try {
+    // Write value 1 to the throttle calibration characteristic to start calibration
+    const calibrationData = [1];
+    await bleManager.writeCharacteristic(BLE_UUIDS.THROTTLE_CALIBRATION, calibrationData);
+  } catch (error) {
+    console.error('Failed to start throttle calibration:', error);
+    throw new Error('Failed to start throttle calibration');
+  }
+}
+
+export async function readThrottleCalibrationStatus(): Promise<{isCalibrated: boolean, min: number, max: number}> {
+  try {
+    // Read from the throttle calibration status characteristic
+    const data = await bleManager.readCharacteristic(BLE_UUIDS.THROTTLE_CALIBRATION_STATUS);
+    
+    if (data && data.length >= 5) {
+      // Parse the status data
+      // Format: [isCalibrated: 1 byte, min: 2 bytes, max: 2 bytes]
+      const isCalibrated = data[0] === 1;
+      const min = (data[2] << 8) | data[1]; // Little-endian 16-bit (consistent with notification parsing)
+      const max = (data[4] << 8) | data[3]; // Little-endian 16-bit (consistent with notification parsing)
+      
+      return { isCalibrated, min, max };
+    } else {
+      return { isCalibrated: false, min: 900, max: 2000 };
+    }
+  } catch (error) {
+    console.error('Failed to read throttle calibration status:', error);
+    // Return default values on error
+    return { isCalibrated: false, min: 900, max: 2000 };
+  }
+}
+
+export async function resetThrottleCalibration(): Promise<void> {
+  try {
+    // Write value 1 to the throttle calibration reset characteristic
+    const resetData = [1];
+    await bleManager.writeCharacteristic(BLE_UUIDS.THROTTLE_CALIBRATION_RESET, resetData);
+  } catch (error) {
+    console.error('Failed to reset throttle calibration:', error);
+    throw new Error('Failed to reset throttle calibration');
+  }
 }

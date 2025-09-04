@@ -15,7 +15,12 @@ export const BLE_UUIDS = {
   AB_THRESHOLD: 'b5f9a007-2b6c-4f6a-93b1-2f1f5f9ab007',
   SAVE_PRESET: 'b5f9a008-2b6c-4f6a-93b1-2f1f5f9ab008',
   STATUS: 'b5f9a009-2b6c-4f6a-93b1-2f1f5f9ab009',
-} as const;
+  
+  // Throttle calibration UUIDs
+  THROTTLE_CALIBRATION: 'b5f9a010-2b6c-4f6a-93b1-2f1f5f9ab010',
+  THROTTLE_CALIBRATION_STATUS: 'b5f9a011-2b6c-4f6a-93b1-2f1f5f9ab011',
+  THROTTLE_CALIBRATION_RESET: 'b5f9a012-2b6c-4f6a-93b1-2f1f5f9ab012',
+};
 
 // Device name to scan for
 export const DEVICE_NAME = 'ABurner';
@@ -29,11 +34,11 @@ export const DEFAULT_VALUES = {
   brightness: 200,
   numLeds: 45,
   abThreshold: 80,
-} as const;
+};
 
 // Mode options
 export const MODES = [
   { id: 0, name: 'Linear' },
   { id: 1, name: 'Ease' },
   { id: 2, name: 'Pulse' },
-] as const;
+];

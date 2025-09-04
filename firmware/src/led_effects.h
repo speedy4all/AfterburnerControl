@@ -1,11 +1,10 @@
 #ifndef LED_EFFECTS_H
 #define LED_EFFECTS_H
 
+#include <Arduino.h>
 #include <FastLED.h>
 #include "settings.h"
-
-// Pin definitions
-#define LED_PIN 18
+#include "constants.h"
 
 class LEDEffects {
 private:
@@ -30,8 +29,8 @@ private:
   void renderCoreEffect(const AfterburnerSettings& settings, float throttle);
   void renderAfterburnerOverlay(const AfterburnerSettings& settings, float throttle);
   float getEasedThrottle(float throttle, uint8_t mode);
-  void addFlicker(uint16_t ledIndex, uint8_t intensity);
-  void addSparkles(float abIntensity);
+  void addFlicker(uint16_t ledIndex, uint8_t intensity, const AfterburnerSettings& settings);
+  void addSparkles(float abIntensity, const AfterburnerSettings& settings);
   CRGB lerpColor(CRGB color1, CRGB color2, float factor);
 };
 

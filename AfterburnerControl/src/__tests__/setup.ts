@@ -1,16 +1,16 @@
-// Mock react-native-ble-plx
-jest.mock('react-native-ble-plx', () => ({
-  BleManager: jest.fn().mockImplementation(() => ({
-    state: jest.fn().mockResolvedValue('PoweredOn'),
-    startDeviceScan: jest.fn(),
-    stopDeviceScan: jest.fn(),
-    connectToDevice: jest.fn(),
-    cancelDeviceConnection: jest.fn(),
-    discoverAllServicesAndCharacteristicsForDevice: jest.fn(),
-    readCharacteristicForDevice: jest.fn(),
-    writeCharacteristicForDevice: jest.fn(),
-    monitorCharacteristicForDevice: jest.fn(),
-  })),
+// Mock react-native-ble-manager
+jest.mock('react-native-ble-manager', () => ({
+  start: jest.fn(),
+  scan: jest.fn(),
+  stopScan: jest.fn(),
+  connect: jest.fn(),
+  disconnect: jest.fn(),
+  retrieveServices: jest.fn(),
+  read: jest.fn(),
+  write: jest.fn(),
+  startNotification: jest.fn(),
+  stopNotification: jest.fn(),
+  getState: jest.fn(),
 }));
 
 // Mock @react-native-community/slider

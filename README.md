@@ -1,6 +1,6 @@
 # ESP32 C3 Afterburner Project
 
-A complete LED afterburner effect system for RC models, featuring real-time throttle input, customizable LED effects, Bluetooth control, and OLED status display.
+A complete LED afterburner effect system for RC models, featuring real-time throttle input, customizable LED effects, Bluetooth control, OLED status display, and enhanced mobile app control.
 
 ![ESP32 C3 Afterburner](https://img.shields.io/badge/ESP32%20C3%20Afterburner-Project-blue)
 ![Platform](https://img.shields.io/badge/Platform-ESP32%20C3-green)
@@ -14,11 +14,14 @@ A complete LED afterburner effect system for RC models, featuring real-time thro
 This project creates a realistic afterburner effect for RC jet models using an ESP32 C3 OLED development board. The system features:
 
 - **Real-time throttle input processing** from RC receivers or potentiometers
+- **Enhanced throttle calibration** with multiple position validation and stability checks
 - **Dynamic LED effects** with WS2812B strips simulating jet engine afterburner
-- **Bluetooth remote control** via BLE for real-time configuration
+- **Speed-controlled animations** (100-5000ms) for customizable effect timing
+- **Bluetooth remote control** via BLE for real-time configuration and monitoring
 - **OLED status display** with three-page interface and navigation
 - **Multiple effect modes** (Linear, Ease, Pulse) for different engine characteristics
-- **Settings persistence** with EEPROM storage
+- **Settings persistence** with flash memory storage
+- **Advanced mobile app** with theme persistence and real-time calibration monitoring
 
 ## 📁 Project Structure
 
@@ -27,19 +30,24 @@ ESP32-C3-Afterburner/
 ├── firmware/                          # ESP32 C3 firmware
 │   ├── src/                          # Source code
 │   │   ├── main.cpp                  # Main application
-│   │   ├── settings.h/cpp            # Settings management
-│   │   ├── throttle.h/cpp            # PWM input processing
-│   │   ├── led_effects.h/cpp         # LED animation system
-│   │   ├── ble_service.h/cpp         # Bluetooth communication
+│   │   ├── settings.h/cpp            # Settings management & flash storage
+│   │   ├── throttle.h/cpp            # PWM input processing & calibration
+│   │   ├── led_effects.h/cpp         # LED animation system with speed control
+│   │   ├── ble_service.h/cpp         # Bluetooth communication & notifications
+│   │   ├── constants.h                # System constants & calibration parameters
 │   │   └── oled_display.h/cpp        # OLED display interface
 │   ├── platformio.ini                # PlatformIO configuration
 │   ├── README.md                     # Firmware documentation
+│   ├── SPEED_SETTING_IMPLEMENTATION.md # Speed control documentation
 │   ├── ESP32_AFTERBURNER_COMPLETE_WIRING.md
 │   ├── OLED_DISPLAY_README.md
 │   ├── NAVIGATION_BUTTON_WIRING.md
 │   └── PROJECT_VERIFICATION.md
 ├── AfterburnerControl/               # React Native mobile app
 │   ├── src/                          # App source code
+│   │   ├── screens/                  # App screens
+│   │   ├── components/               # Reusable components
+│   │   └── ble/                      # Bluetooth communication layer
 │   ├── android/                      # Android specific files
 │   ├── ios/                          # iOS specific files
 │   └── package.json                  # Dependencies
@@ -85,6 +93,13 @@ ESP32-C3-Afterburner/
 - **[OLED Display Guide](firmware/OLED_DISPLAY_README.md)** - Display functionality
 - **[Navigation Button Guide](firmware/NAVIGATION_BUTTON_WIRING.md)** - Button setup
 - **[Project Verification](firmware/PROJECT_VERIFICATION.md)** - Complete verification checklist
+- **[Speed Setting Implementation](firmware/SPEED_SETTING_IMPLEMENTATION.md)** - Animation speed control
+
+### Project Documentation
+
+- **[CHANGELOG.md](CHANGELOG.md)** - Complete history of changes and improvements
+- **[Firmware README](firmware/README.md)** - Detailed firmware documentation
+- **[Mobile App README](AfterburnerControl/README.md)** - Mobile application documentation
 
 ### Firmware Documentation
 
@@ -138,13 +153,30 @@ pio device monitor
 
 ## 🎮 Features
 
-### LED Effects
+### Enhanced Throttle Calibration
+
+- **Multi-position validation**: Requires multiple visits to min/max positions
+- **Stability checking**: Ensures readings are consistent before saving
+- **Time-based validation**: Prevents immediate saving for better accuracy
+- **Real-time progress**: Mobile app shows calibration progress with visit counts
+- **Automatic completion detection**: App automatically detects when calibration is done
+
+### LED Effects with Speed Control
 
 - **Core Effect**: Simulates jet engine core with color gradients
 - **Afterburner Overlay**: Dynamic flame effect based on throttle
-- **Flicker Simulation**: Realistic engine flickering
-- **Sparkle Effects**: Random sparkles for authenticity
+- **Flicker Simulation**: Realistic engine flickering with adjustable speed
+- **Sparkle Effects**: Random sparkles for authenticity with speed control
 - **Color Customization**: Full RGB control for start/end colors
+- **Speed Settings**: 100-5000ms range for animation timing control
+
+### Advanced Mobile App Features
+
+- **Theme Persistence**: Dark/light theme saved to device storage
+- **Real-time Calibration Monitoring**: Live updates during calibration process
+- **Enhanced UI**: Better visibility in both light and dark themes
+- **Calibration Progress**: Visual feedback showing min/max visit counts
+- **Automatic Status Updates**: Real-time throttle and mode monitoring
 
 ### User Interface
 
@@ -153,14 +185,14 @@ pio device monitor
   - Settings (speed, brightness, LED count, threshold)
   - Detailed Status (colors, connection details)
 - **Navigation Button**: Manual page control with debouncing
-- **Serial Monitor**: Comprehensive debug information
-- **BLE App**: Remote control and monitoring
+- **Serial Monitor**: Essential debug information (cleaned up)
+- **BLE App**: Remote control, monitoring, and calibration
 
 ### Effect Modes
 
 - **Linear**: Direct throttle-to-brightness mapping
 - **Ease**: Smooth acceleration curve
-- **Pulse**: Pulsing effect at high throttle
+- **Pulse**: Pulsing effect at high throttle with speed control
 
 ## 📊 Performance
 
@@ -176,7 +208,8 @@ pio device monitor
 - **Main Loop**: 50 FPS (20ms delay)
 - **OLED Update**: 500ms intervals
 - **BLE Status**: 200ms notifications
-- **LED Effects**: Real-time rendering
+- **LED Effects**: Real-time rendering with speed control
+- **Calibration**: Multi-position validation with stability checks
 
 ## 🔍 Troubleshooting
 
@@ -199,18 +232,28 @@ pio device monitor
    - Check PWM signal on GPIO34
    - Verify signal range (1-2ms typical)
    - Test with potentiometer
+   - Ensure proper calibration with multiple position visits
 
 4. **BLE Connection Problems**
+
    - Check antenna connection
    - Verify power supply stability
    - Look for "ABurner" device in app
+   - Ensure proper permissions on mobile device
+
+5. **Calibration Issues**
+   - Move throttle to min/max positions multiple times
+   - Ensure stable readings before saving
+   - Check mobile app for calibration progress
+   - Verify flash memory is working properly
 
 ### Debug Information
 
-- **Serial Monitor**: Real-time system status
+- **Serial Monitor**: Essential system status (cleaned up)
 - **OLED Display**: Current settings and throttle
 - **LED Patterns**: Visual system state indication
-- **BLE App**: Remote monitoring and control
+- **BLE App**: Remote monitoring, control, and calibration
+- **Mobile App Logs**: Critical error information only
 
 ## 🤝 Contributing
 
@@ -230,6 +273,7 @@ We welcome contributions! Please feel free to submit pull requests or open issue
 - Add comments for complex logic
 - Update documentation for new features
 - Include tests when possible
+- Keep debug logs minimal and essential
 
 ## 🔄 CI/CD Pipeline
 
@@ -268,6 +312,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **NimBLE Library** for efficient Bluetooth communication
 - **U8g2 Library** for OLED display support
 - **PlatformIO** for excellent development environment
+- **React Native Community** for mobile app development tools
 
 ## 📞 Support
 
@@ -276,7 +321,8 @@ For support and questions:
 1. Check the troubleshooting section
 2. Review the wiring diagrams
 3. Monitor Serial output for debug information
-4. Open an issue with detailed problem description
+4. Check mobile app for calibration status
+5. Open an issue with detailed problem description
 
 ## 🔮 Future Enhancements
 
@@ -288,6 +334,7 @@ For support and questions:
 - **Temperature Monitoring**: Thermal protection
 - **Preset Management**: Save/load effect configurations
 - **Advanced Effects**: More realistic engine simulations
+- **Calibration Profiles**: Multiple calibration presets
 
 ### Hardware Expansions
 
