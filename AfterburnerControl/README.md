@@ -259,7 +259,7 @@ The app features a comprehensive theme system:
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Test thoroughly
+4. Verify thoroughly
 5. Submit a pull request
 
 ### Code Style Guidelines
@@ -267,7 +267,7 @@ The app features a comprehensive theme system:
 - Follow existing code formatting
 - Add comments for complex logic
 - Update documentation for new features
-- Include tests when possible
+- Include verification when possible
 - Keep debug logs minimal and essential
 
 ## License

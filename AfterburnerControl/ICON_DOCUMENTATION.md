@@ -191,13 +191,13 @@ class SplashActivity : AppCompatActivity() {
 
 1. **Vector Files**: Modify XML drawables
 2. **Colors**: Update colors.xml
-3. **Testing**: Verify on different devices
+3. **Verification**: Verify on different devices
 4. **Documentation**: Update this file
 
 ### Best Practices
 
 - **Vector First**: Always use vector drawables
-- **Test Multiple Sizes**: Verify at all densities
+- **Verify Multiple Sizes**: Verify at all densities
 - **Accessibility**: Ensure good contrast
 - **Performance**: Keep file sizes small
 

@@ -5,9 +5,6 @@ A complete LED afterburner effect system for RC models, featuring real-time thro
 ![ESP32 C3 Afterburner](https://img.shields.io/badge/ESP32%20C3%20Afterburner-Project-blue)
 ![Platform](https://img.shields.io/badge/Platform-ESP32%20C3-green)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
-![Firmware Tests](https://github.com/speedy4all/AfterburnerControl/workflows/Firmware%20Testing/badge.svg)
-![React Native Tests](https://github.com/speedy4all/AfterburnerControl/workflows/Run%20Tests/badge.svg)
-![React Native Build](https://github.com/speedy4all/AfterburnerControl/workflows/Build%20React%20Native%20App/badge.svg)
 
 ## 🚀 Project Overview
 
@@ -141,7 +138,7 @@ oledDisplay.begin(2);  // Navigation button pin
 // Throttle input pin (default: GPIO34)
 ```
 
-### 4. Upload and Test
+### 4. Upload and Verify
 
 ```bash
 # Upload to ESP32 C3 via USB-C
@@ -231,7 +228,7 @@ pio device monitor
 
    - Check PWM signal on GPIO34
    - Verify signal range (1-2ms typical)
-   - Test with potentiometer
+   - Verify with potentiometer
    - Ensure proper calibration with multiple position visits
 
 4. **BLE Connection Problems**
@@ -272,34 +269,8 @@ We welcome contributions! Please feel free to submit pull requests or open issue
 - Follow existing code formatting
 - Add comments for complex logic
 - Update documentation for new features
-- Include tests when possible
+- Include verification when possible
 - Keep debug logs minimal and essential
-
-## 🔄 CI/CD Pipeline
-
-This project uses GitHub Actions for continuous integration and deployment:
-
-### Build Workflows
-
-- **Firmware Testing**: Automatically builds and validates ESP32 C3 firmware using PlatformIO
-- **React Native Tests**: Runs unit tests for the mobile application
-- **React Native Build**: Builds both Android APK and iOS app
-
-### Build Status
-
-The build status badges above show the current state of:
-
-- ✅ **Firmware Tests**: ESP32 C3 firmware compilation and validation
-- ✅ **React Native Tests**: Mobile app unit test execution and coverage
-- ✅ **React Native Build**: Mobile app builds for Android and iOS
-
-### Artifacts
-
-Build artifacts are automatically generated and can be downloaded from the GitHub Actions page:
-
-- **Firmware Testing**: Compiled firmware binaries (.bin, .elf files) and test reports
-- **React Native Tests**: Test coverage reports and analysis
-- **React Native Build**: Android APK files and iOS build packages
 
 ## 📄 License
 

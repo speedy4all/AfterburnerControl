@@ -56,11 +56,11 @@ Successfully migrated from **NimBLE-Arduino** to the **official Arduino BLE libr
 3. **Improved Compatibility**: Better support for various mobile devices
 4. **Easier Debugging**: More consistent error reporting and logging
 
-## Testing Recommendations
+## Verification Recommendations
 
 1. **Compile and Upload**: Build the firmware and upload to your ESP32-C3
 2. **Monitor Serial Output**: Watch for BLE initialization messages
-3. **Test Mobile App**: Try connecting and writing to characteristics
+3. **Verify Mobile App**: Try connecting and writing to characteristics
 4. **Verify Callbacks**: Check that characteristic writes trigger the expected behavior
 5. **Monitor Logs**: Look for callback trigger messages in serial output
 
@@ -81,8 +81,8 @@ If issues persist, you can revert by:
 
 ## Next Steps
 
-1. **Build and Test**: Compile and upload the new firmware
-2. **Mobile App Testing**: Test all BLE functionality with your mobile app
+1. **Build and Verify**: Compile and upload the new firmware
+2. **Mobile App Verification**: Verify all BLE functionality with your mobile app
 3. **Performance Monitoring**: Monitor for any performance improvements or issues
 4. **Feedback**: Report any issues or improvements you notice
 

@@ -168,7 +168,7 @@ When contributing to this project, please:
 
 1. Follow the existing code style
 2. Add appropriate documentation
-3. Include tests when possible
+3. Include verification when possible
 4. Keep debug logs minimal and essential
 5. Update this changelog for significant changes
 

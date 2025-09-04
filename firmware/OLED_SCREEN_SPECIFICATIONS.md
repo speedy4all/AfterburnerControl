@@ -24,13 +24,15 @@ Most standard 0.42-inch OLED screens start drawing at position (0, 0), but this 
 
 The firmware has been specifically adapted with:
 
-1. **Offset Constants**: 
+1. **Offset Constants**:
+
    ```cpp
    static const uint8_t SCREEN_OFFSET_X = 13;
    static const uint8_t SCREEN_OFFSET_Y = 14;
    ```
 
 2. **Offset Helper Functions**:
+
    ```cpp
    uint8_t getOffsetX(uint8_t x) const { return x + SCREEN_OFFSET_X; }
    uint8_t getOffsetY(uint8_t y) const { return y + SCREEN_OFFSET_Y; }
@@ -41,12 +43,14 @@ The firmware has been specifically adapted with:
 ## Compatibility Issues
 
 ### ❌ NOT Compatible With:
+
 - Standard 0.42-inch OLED screens
 - Screens without offset compensation
 - Different resolution displays
 - Different I2C pin configurations
 
 ### ✅ Compatible With:
+
 - This specific 128x64 OLED screen with (13, 14) offset
 - ESP32-C3 boards with GPIO5/GPIO6 I2C configuration
 
@@ -57,7 +61,7 @@ The firmware has been specifically adapted with:
 1. **Verify the exact model number** matches this specification
 2. **Check if it has the same offset characteristics** (13, 14)
 3. **Confirm the I2C pin configuration** is compatible
-4. **Test with a simple Arduino sketch** to verify offset behavior
+4. **Verify with a simple Arduino sketch** to verify offset behavior
 
 ## Alternative Solutions
 
@@ -65,10 +69,10 @@ If you need to use a different screen:
 
 1. **Modify the offset constants** in `oled_display.h`
 2. **Adjust all drawing coordinates** throughout the code
-3. **Test thoroughly** with the new screen
+3. **Verify thoroughly** with the new screen
 4. **Update this documentation** with new specifications
 
-## Testing
+## Verification
 
 To verify your screen is compatible:
 

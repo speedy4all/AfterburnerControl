@@ -1,11 +1,13 @@
 # Speed Setting Implementation
 
 ## Overview
+
 The `speedMs` setting (100-5000ms) in the Afterburner firmware now controls the animation timing for various LED effects, making it a functional and useful control parameter.
 
 ## What the Speed Setting Controls
 
 ### 1. **Pulse Mode Afterburner Effects** (Mode 2)
+
 - **Function**: Controls how fast the afterburner effect pulses
 - **Formula**: `pulseFrequency = 1000.0f / speedMs`
 - **Examples**:
@@ -14,6 +16,7 @@ The `speedMs` setting (100-5000ms) in the Afterburner firmware now controls the 
   - 5000ms = Slow pulse (0.2Hz) - Slow, gentle pulsing
 
 ### 2. **Breathing Effect** (Modes 1 & 2)
+
 - **Function**: Controls the breathing animation speed for the main LED strip
 - **Formula**: `breathingSpeed = 1000.0f / speedMs`
 - **Effect**: Creates a subtle breathing effect where brightness gently rises and falls
@@ -23,6 +26,7 @@ The `speedMs` setting (100-5000ms) in the Afterburner firmware now controls the 
   - 5000ms = Slow breathing - Very slow, gentle breathing
 
 ### 3. **Flicker Effect**
+
 - **Function**: Controls how fast the flicker animation cycles
 - **Formula**: `flickerSpeed = 1000.0f / speedMs`
 - **Effect**: Adds realistic flicker to simulate flame/engine effects
@@ -32,6 +36,7 @@ The `speedMs` setting (100-5000ms) in the Afterburner firmware now controls the 
   - 5000ms = Slow flicker - Gentle, slow flickering
 
 ### 4. **Sparkle Effect**
+
 - **Function**: Controls sparkle frequency during afterburner activation
 - **Formula**: `sparkleFrequency = 1000.0f / speedMs`
 - **Effect**: Adds white sparkles when afterburner is strong
@@ -45,16 +50,18 @@ The `speedMs` setting (100-5000ms) in the Afterburner firmware now controls the 
 ### Code Changes Made
 
 1. **Pulse Mode** (`led_effects.cpp:110`):
+
    ```cpp
    // Before (hardcoded):
    float pulse = 0.6f + 0.4f * sin(millis() * 0.12f);
-   
+
    // After (speed-controlled):
    float pulseFrequency = 1000.0f / (float)settings.speedMs;
    float pulse = 0.6f + 0.4f * sin(millis() * pulseFrequency);
    ```
 
 2. **Breathing Effect** (`led_effects.cpp:80-85`):
+
    ```cpp
    // New breathing effect for Ease and Pulse modes
    if (settings.mode == 1 || settings.mode == 2) {
@@ -65,20 +72,22 @@ The `speedMs` setting (100-5000ms) in the Afterburner firmware now controls the 
    ```
 
 3. **Flicker Effect** (`led_effects.cpp:150-155`):
+
    ```cpp
    // Before (hardcoded):
    uint8_t noise = inoise8(ledIndex * 12, (millis() + ledIndex * 7) * 8 + noiseOffset);
-   
+
    // After (speed-controlled):
    float flickerSpeed = 1000.0f / (float)settings.speedMs;
    uint8_t noise = inoise8(ledIndex * 12, (millis() * flickerSpeed + ledIndex * 7) * 8 + noiseOffset);
    ```
 
 4. **Sparkle Effect** (`led_effects.cpp:170-175`):
+
    ```cpp
    // Before (hardcoded):
    if (random(1000) < (abIntensity * 50)) {
-   
+
    // After (speed-controlled):
    float sparkleFrequency = 1000.0f / (float)settings.speedMs;
    uint16_t sparkleChance = (uint16_t)(abIntensity * 50 * sparkleFrequency);
@@ -95,13 +104,13 @@ The `speedMs` setting (100-5000ms) in the Afterburner firmware now controls the 
 
 ### Speed Ranges and Effects
 
-| Speed Setting | Animation Speed | User Experience |
-|---------------|-----------------|-----------------|
-| **100ms** | Very Fast | Rapid, intense animations - Good for high-energy effects |
-| **500ms** | Fast | Quick animations - Good for dynamic effects |
-| **1200ms** | Normal | Default speed - Balanced, comfortable animations |
-| **2500ms** | Slow | Gentle animations - Good for relaxed effects |
-| **5000ms** | Very Slow | Very slow animations - Good for subtle, ambient effects |
+| Speed Setting | Animation Speed | User Experience                                          |
+| ------------- | --------------- | -------------------------------------------------------- |
+| **100ms**     | Very Fast       | Rapid, intense animations - Good for high-energy effects |
+| **500ms**     | Fast            | Quick animations - Good for dynamic effects              |
+| **1200ms**    | Normal          | Default speed - Balanced, comfortable animations         |
+| **2500ms**    | Slow            | Gentle animations - Good for relaxed effects             |
+| **5000ms**    | Very Slow       | Very slow animations - Good for subtle, ambient effects  |
 
 ### Mode-Specific Behavior
 
@@ -120,15 +129,17 @@ The `speedMs` setting (100-5000ms) in the Afterburner firmware now controls the 
 ## Future Enhancements
 
 Potential improvements could include:
+
 - Speed presets (Slow, Normal, Fast, Turbo)
 - Speed ramping for smooth transitions
 - Mode-specific speed ranges
 - Speed synchronization with throttle input
 - Speed-based color temperature changes
 
-## Testing
+## Verification
 
-To test the speed setting:
+To verify the speed setting:
+
 1. Set different speed values via the mobile app (100ms to 5000ms)
 2. Observe changes in:
    - Pulse mode afterburner pulsing rate

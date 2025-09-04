@@ -84,7 +84,7 @@ If you don't want to add a button:
 - **Feedback**: Serial output shows page changes
 - **Auto-advance**: Disabled when button is configured
 
-## Testing
+## Verification
 
 1. Upload the code to your ESP32 C3
 2. Open Serial Monitor (115200 baud)

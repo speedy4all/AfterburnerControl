@@ -230,7 +230,7 @@ The board provides:
 - **5V Pin**: 5V output (max ~500mA)
 - **3V3 Pin**: 3.3V regulated output (max ~300mA)
 
-## Testing Procedure
+## Verification Procedure
 
 ### 1. Basic Functionality
 
@@ -241,16 +241,16 @@ The board provides:
 4. Verify built-in OLED shows startup screen
 ```
 
-### 2. Button Testing
+### 2. Button Verification
 
 ```
 1. Press navigation button on GPIO2
 2. Check Serial Monitor for button press messages
 3. Verify OLED pages advance
-4. Test button debounce (rapid pressing)
+4. Verify button debounce (rapid pressing)
 ```
 
-### 3. Throttle Testing
+### 3. Throttle Verification
 
 ```
 1. Connect throttle input to GPIO1 (A1 pin)
@@ -259,21 +259,21 @@ The board provides:
 4. Verify OLED shows throttle percentage
 ```
 
-### 4. LED Testing
+### 4. LED Verification
 
 ```
 1. Power up LED strip
 2. Check for startup LED pattern
 3. Move throttle to see LED response
-4. Test different modes via BLE app
+4. Verify different modes via BLE app
 ```
 
-### 5. BLE Testing
+### 5. BLE Verification
 
 ```
 1. Open BLE app on phone
 2. Scan for "ABurner" device
-3. Connect and test settings changes
+3. Connect and verify settings changes
 4. Verify OLED updates with new settings
 ```
 

@@ -140,7 +140,7 @@ oledDisplay.begin(2);  // Navigation button pin (GPIO2)
 ```bash
 # Upload to ESP32-C3 OLED board via USB-C
 # Monitor Serial output (115200 baud)
-# Test all components
+# Verify all components are working
 ```
 
 ## 🎮 Usage
@@ -197,7 +197,7 @@ oledDisplay.begin(2);  // Navigation button pin (GPIO2)
 
    - Check PWM signal on GPIO1
    - Verify signal range (1-2ms typical)
-   - Test with potentiometer
+   - Verify with potentiometer
    - Ensure proper calibration with multiple position visits
 
 4. **BLE Connection Problems**
@@ -270,7 +270,7 @@ Contributions are welcome! Please feel free to submit pull requests or open issu
 - Follow existing code formatting
 - Add comments for complex logic
 - Update documentation for new features
-- Include tests when possible
+- Include verification when possible
 - Keep debug logs minimal and essential
 
 ## 📞 Support
