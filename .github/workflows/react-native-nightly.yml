@@ -1,0 +1,221 @@
+name: React Native Nightly Build
+
+on:
+  schedule:
+    # Run every night at 2 AM UTC (adjust timezone as needed)
+    - cron: "0 2 * * *"
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    env:
+      JAVA_HOME: /opt/hostedtoolcache/Java_Zulu_jdk/17.0.10-7/x64
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+          cache-dependency-path: AfterburnerControl/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./AfterburnerControl
+        run: npm ci
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: "zulu"
+          java-version: "17"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Verify Java and Android SDK
+        run: |
+          echo "Java version:"
+          java -version
+          echo ""
+          echo "JAVA_HOME: $JAVA_HOME"
+          echo ""
+          echo "Android SDK location:"
+          echo $ANDROID_HOME
+          echo ""
+          echo "Available Android SDK tools:"
+          ls -la $ANDROID_HOME/cmdline-tools/latest/bin/
+
+      - name: Make Gradle wrapper executable
+        working-directory: ./AfterburnerControl/android
+        run: |
+          echo "Checking Android directory structure..."
+          ls -la
+          echo ""
+          echo "Checking Gradle wrapper file..."
+          ls -la gradlew
+          echo ""
+          echo "Making Gradle wrapper executable..."
+          chmod +x gradlew
+          echo ""
+          echo "Verifying permissions..."
+          ls -la gradlew
+          echo ""
+          echo "Testing Gradle wrapper..."
+          ./gradlew --version
+
+      - name: Build Android APK
+        working-directory: ./AfterburnerControl
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
+          JAVA_HOME: ${{ env.JAVA_HOME }}
+        run: |
+          cd android
+          ./gradlew assembleRelease --info
+          cd ..
+
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk-nightly
+          path: AfterburnerControl/android/app/build/outputs/apk/release/
+          retention-days: 30 # Keep nightly builds longer
+
+      - name: Create build report
+        run: |
+          echo "📱 Nightly React Native Build Report" > nightly-build-report.md
+          echo "===================================" >> nightly-build-report.md
+          echo "" >> nightly-build-report.md
+          echo "## Build Date" >> nightly-build-report.md
+          echo "$(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> nightly-build-report.md
+          echo "" >> nightly-build-report.md
+          echo "## Android Build" >> nightly-build-report.md
+          echo "- ✅ APK built successfully" >> nightly-build-report.md
+          echo "- 📦 Artifact: android-apk-nightly" >> nightly-build-report.md
+          echo "" >> nightly-build-report.md
+          echo "## Next Steps" >> nightly-build-report.md
+          echo "1. Download the APK from artifacts" >> nightly-build-report.md
+          echo "2. Test on Android device" >> nightly-build-report.md
+          echo "3. Verify BLE functionality" >> nightly-build-report.md
+
+      - name: Upload build report
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-build-report
+          path: nightly-build-report.md
+          retention-days: 7
+
+  build-ios:
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+          cache-dependency-path: AfterburnerControl/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./AfterburnerControl
+        run: npm ci
+
+      - name: Setup Xcode
+        run: |
+          echo "Available Xcode versions:"
+          ls -la /Applications/ | grep Xcode
+          echo ""
+          echo "Current Xcode setup:"
+          xcode-select --print-path
+          xcodebuild -version
+          echo ""
+          echo "Setting Xcode to latest version..."
+          if [ -d "/Applications/Xcode_16.1.app" ]; then
+            sudo xcode-select --switch /Applications/Xcode_16.1.app
+          elif [ -d "/Applications/Xcode_16.2.app" ]; then
+            sudo xcode-select --switch /Applications/Xcode_16.2.app
+          else
+            echo "Using default Xcode version"
+          fi
+          echo ""
+          echo "Verifying Xcode setup:"
+          xcodebuild -version
+          echo "Xcode path: $(xcode-select --print-path)"
+
+      - name: Install iOS dependencies
+        working-directory: ./AfterburnerControl/ios
+        env:
+          DEVELOPER_DIR: /Applications/Xcode_16.1.app/Contents/Developer
+        run: |
+          pod install --repo-update
+
+      - name: List iOS schemes and simulators
+        working-directory: ./AfterburnerControl/ios
+        env:
+          DEVELOPER_DIR: /Applications/Xcode_16.1.app/Contents/Developer
+        run: |
+          echo "Available schemes:"
+          xcodebuild -list -workspace AfterburnerControl.xcworkspace
+          echo ""
+          echo "Available simulators:"
+          xcrun simctl list devices available | grep iPhone
+          echo ""
+          echo "Workspace structure:"
+          ls -la
+
+      - name: Build iOS
+        working-directory: ./AfterburnerControl
+        env:
+          DEVELOPER_DIR: /Applications/Xcode_16.1.app/Contents/Developer
+        run: |
+          cd ios
+          echo "Attempting to build with iPhone 16 (iOS 18.2) simulator..."
+          xcodebuild -workspace AfterburnerControl.xcworkspace -scheme AfterburnerControl -configuration Release -destination 'platform=iOS Simulator,id=1A39A28F-677F-4200-9E54-1F6CF100FE1F' -derivedDataPath build || {
+            echo "iPhone 16 (iOS 18.2) simulator not available, trying iPhone 16 (iOS 18.1)..."
+            xcodebuild -workspace AfterburnerControl.xcworkspace -scheme AfterburnerControl -configuration Release -destination 'platform=iOS Simulator,id=B05C1CFC-2036-4762-8451-6D9F1769D3E3' -derivedDataPath build || {
+              echo "iPhone 16 simulators not available, trying generic iPhone 16..."
+              xcodebuild -workspace AfterburnerControl.xcworkspace -scheme AfterburnerControl -configuration Release -destination 'platform=iOS Simulator,name=iPhone 16' -derivedDataPath build || {
+                echo "iPhone 16 simulator not available, trying generic iOS Simulator..."
+                xcodebuild -workspace AfterburnerControl.xcworkspace -scheme AfterburnerControl -configuration Release -destination 'platform=iOS Simulator' -derivedDataPath build
+              }
+            }
+          }
+          cd ..
+
+      - name: Upload iOS build
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build-nightly
+          path: AfterburnerControl/ios/build/
+          retention-days: 30 # Keep nightly builds longer
+
+  notify-success:
+    needs: [build-android, build-ios]
+    runs-on: ubuntu-latest
+    if: success()
+
+    steps:
+      - name: Notify build success
+        run: |
+          echo "🎉 Nightly React Native build completed successfully!"
+          echo "📱 Android APK: Available in artifacts (android-apk-nightly)"
+          echo "🍎 iOS Build: Available in artifacts (ios-build-nightly)"
+          echo "📋 Report: Available in artifacts (nightly-build-report)"
+
+  notify-failure:
+    needs: [build-android, build-ios]
+    runs-on: ubuntu-latest
+    if: failure()
+
+    steps:
+      - name: Notify build failure
+        run: |
+          echo "❌ Nightly React Native build failed!"
+          echo "Please check the workflow logs for details."
+          exit 1

@@ -1,0 +1,143 @@
+name: Firmware Testing
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "firmware/platformio.ini"
+      - "firmware/src/**"
+      - "firmware/lib/**"
+  pull_request:
+    branches: [master]
+    paths:
+      - "firmware/platformio.ini"
+      - "firmware/src/**"
+      - "firmware/lib/**"
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+
+      - name: Install PlatformIO
+        run: |
+          python -m pip install --upgrade pip
+          pip install platformio
+
+      - name: Cache PlatformIO
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.platformio
+            firmware/.pio
+          key: ${{ runner.os }}-pio-${{ hashFiles('firmware/platformio.ini') }}
+          restore-keys: |
+            ${{ runner.os }}-pio-
+
+      - name: Build normal firmware
+        working-directory: ./firmware
+        run: |
+          echo "🔨 Building normal firmware..."
+          pio run -e esp32dev
+          echo "✅ Normal firmware built successfully"
+
+      - name: Build test firmware
+        working-directory: ./firmware
+        run: |
+          echo "🧪 Building test firmware..."
+          pio run -e esp32dev_test
+          echo "✅ Test firmware built successfully"
+
+      - name: Verify builds
+        working-directory: ./firmware
+        run: |
+          echo "🔍 Verifying builds..."
+
+          # Check normal firmware
+          if [ -f ".pio/build/esp32dev/firmware.bin" ]; then
+            NORMAL_SIZE=$(ls -lh .pio/build/esp32dev/firmware.bin | awk '{print $5}')
+            echo "✅ Normal firmware: $NORMAL_SIZE"
+          else
+            echo "❌ Normal firmware build failed"
+            exit 1
+          fi
+
+          # Check test firmware
+          if [ -f ".pio/build/esp32dev_test/firmware.bin" ]; then
+            TEST_SIZE=$(ls -lh .pio/build/esp32dev_test/firmware.bin | awk '{print $5}')
+            echo "✅ Test firmware: $TEST_SIZE"
+          else
+            echo "❌ Test firmware build failed"
+            exit 1
+          fi
+
+          echo "📊 Build verification complete"
+
+      - name: Analyze firmware size
+        working-directory: ./firmware
+        run: |
+          echo "📈 Firmware size analysis:"
+          echo "Normal firmware: $(ls -lh .pio/build/esp32dev/firmware.bin | awk '{print $5}')"
+          echo "Test firmware: $(ls -lh .pio/build/esp32dev_test/firmware.bin | awk '{print $5}')"
+
+          # Check if firmware size is reasonable (should be under 1MB)
+          NORMAL_SIZE_BYTES=$(stat -c%s .pio/build/esp32dev/firmware.bin)
+          TEST_SIZE_BYTES=$(stat -c%s .pio/build/esp32dev_test/firmware.bin)
+
+          if [ $NORMAL_SIZE_BYTES -gt 1048576 ]; then
+            echo "⚠️  Warning: Normal firmware is larger than 1MB"
+          fi
+
+          if [ $TEST_SIZE_BYTES -gt 1048576 ]; then
+            echo "⚠️  Warning: Test firmware is larger than 1MB"
+          fi
+
+          echo "✅ Size analysis complete"
+
+      - name: Upload firmware artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware-builds
+          path: |
+            firmware/.pio/build/esp32dev/firmware.bin
+            firmware/.pio/build/esp32dev_test/firmware.bin
+            firmware/.pio/build/esp32dev/firmware.elf
+            firmware/.pio/build/esp32dev_test/firmware.elf
+          retention-days: 30
+
+      - name: Create test report
+        run: |
+          echo "📋 Test Report" > test-report.md
+          echo "=============" >> test-report.md
+          echo "" >> test-report.md
+          echo "## Build Status" >> test-report.md
+          echo "- ✅ Normal firmware: Built successfully" >> test-report.md
+          echo "- ✅ Test firmware: Built successfully" >> test-report.md
+          echo "" >> test-report.md
+          echo "## Test Coverage" >> test-report.md
+          echo "The test firmware includes tests for:" >> test-report.md
+          echo "- Settings initialization" >> test-report.md
+          echo "- LED effects initialization" >> test-report.md
+          echo "- Throttle reading functionality" >> test-report.md
+          echo "- BLE service initialization" >> test-report.md
+          echo "- OLED display initialization" >> test-report.md
+          echo "" >> test-report.md
+          echo "## Next Steps" >> test-report.md
+          echo "To run the actual tests on hardware:" >> test-report.md
+          echo "1. Upload the test firmware to an ESP32" >> test-report.md
+          echo "2. Monitor serial output for test results" >> test-report.md
+
+      - name: Upload test report
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: test-report.md
+          retention-days: 7

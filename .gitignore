@@ -1,0 +1,214 @@
+# ESP32 C3 Afterburner Project - Git Ignore File
+
+# PlatformIO
+.pio
+.pioenvs
+.piolibdeps
+.clang_complete
+.gcc-flags.json
+
+# Build outputs
+build/
+dist/
+*.elf
+*.bin
+*.map
+*.hex
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# Node modules (if any frontend components)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Arduino IDE
+*.ino.bak
+*.ino.local
+
+# ESP32 specific
+sdkconfig
+sdkconfig.old
+sdkconfig.defaults
+
+# Backup files
+*.orig
+*.rej
+
+# Documentation build
+docs/_build/
+site/
+
+# Test coverage
+coverage/
+*.gcov
+*.gcda
+*.gcno
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# Kernel Module Compile Results
+*.mod*
+*.cmd
+.tmp_versions/
+modules.order
+Module.symvers
+Mkfile.old
+dkms.conf
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# PEP 582
+__pypackages__/
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# ESP32 C3 specific ignores
+firmware/.pio/
+firmware/build/
+firmware/.vscode/
+firmware/.idea/
+
+# React Native specific (if any)
+AfterburnerControl/node_modules/
+AfterburnerControl/.expo/
+AfterburnerControl/dist/
+AfterburnerControl/npm-debug.*
+AfterburnerControl/*.jks
+AfterburnerControl/*.p8
+AfterburnerControl/*.p12
+AfterburnerControl/*.key
+AfterburnerControl/*.mobileprovision
+AfterburnerControl/*.orig.*
+AfterburnerControl/web-build/
+
+# Android specific
+AfterburnerControl/android/app/build/
+AfterburnerControl/android/build/
+AfterburnerControl/android/.gradle/
+AfterburnerControl/android/local.properties
+AfterburnerControl/android/*.iml
+AfterburnerControl/android/.idea/
+AfterburnerControl/android/.settings/
+AfterburnerControl/android/.project
+AfterburnerControl/android/.classpath
+
+# iOS specific
+AfterburnerControl/ios/build/
+AfterburnerControl/ios/Pods/
+AfterburnerControl/ios/*.xcworkspace/xcuserdata/
+AfterburnerControl/ios/*.xcodeproj/xcuserdata/
+AfterburnerControl/ios/*.xcodeproj/project.xcworkspace/xcuserdata/
+
+# Keep important files
+!firmware/src/
+!firmware/platformio.ini
+!firmware/README.md
+!firmware/*.md
+!AfterburnerControl/src/
+!AfterburnerControl/package.json
+!AfterburnerControl/README.md
