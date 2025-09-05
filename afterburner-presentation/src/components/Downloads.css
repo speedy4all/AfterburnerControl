@@ -1,0 +1,385 @@
+.downloads {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0a0a0a 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.downloads::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(ellipse at 30% 30%, rgba(78, 205, 196, 0.05) 0%, transparent 50%),
+              radial-gradient(ellipse at 70% 70%, rgba(255, 107, 107, 0.05) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.downloads-header {
+  text-align: center;
+  margin-bottom: 60px;
+}
+
+.platform-selector {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  margin-bottom: 60px;
+}
+
+.platform-btn {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 25px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: left;
+}
+
+.platform-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--platform-color);
+  transform: translateY(-5px);
+}
+
+.platform-btn.active {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--platform-color);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.platform-icon {
+  font-size: 2.5rem;
+  color: var(--platform-color);
+  flex-shrink: 0;
+}
+
+.platform-info h4 {
+  color: white;
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+
+.platform-info p {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.releases-container {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  margin-bottom: 60px;
+}
+
+.release-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.release-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 30px;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.release-info {
+  flex: 1;
+}
+
+.version-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #4ecdc4, #45b7d1);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 1.1rem;
+  margin-bottom: 15px;
+}
+
+.release-meta {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.release-meta span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+}
+
+.release-meta svg {
+  color: #4ecdc4;
+}
+
+.release-type {
+  flex-shrink: 0;
+}
+
+.type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.type-badge.stable {
+  background: rgba(78, 205, 196, 0.2);
+  color: #4ecdc4;
+  border: 1px solid rgba(78, 205, 196, 0.3);
+}
+
+.type-badge.beta {
+  background: rgba(255, 193, 7, 0.2);
+  color: #ffc107;
+  border: 1px solid rgba(255, 193, 7, 0.3);
+}
+
+.release-features {
+  padding: 30px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.release-features h4 {
+  color: white;
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 15px;
+}
+
+.release-features ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.release-features li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 8px;
+  font-size: 0.95rem;
+}
+
+.release-features li svg {
+  color: #4ecdc4;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.release-download {
+  padding: 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 30px;
+}
+
+.download-info h4 {
+  color: white;
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.download-info p {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.download-actions {
+  display: flex;
+  gap: 15px;
+  flex-shrink: 0;
+}
+
+.download-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.installation-guide {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.guide-card {
+  padding: 40px;
+  text-align: center;
+}
+
+.guide-card h3 {
+  color: white;
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 40px;
+}
+
+.guide-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  margin-bottom: 40px;
+}
+
+.step {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  text-align: left;
+}
+
+.step-number {
+  width: 50px;
+  height: 50px;
+  background: linear-gradient(135deg, #ff6b6b, #4ecdc4);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.step-content h4 {
+  color: white;
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.step-content p {
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.guide-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.guide-actions .btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .platform-selector {
+    grid-template-columns: 1fr;
+  }
+  
+  .platform-btn {
+    flex-direction: column;
+    text-align: center;
+    gap: 15px;
+  }
+  
+  .release-header {
+    flex-direction: column;
+    gap: 20px;
+    align-items: flex-start;
+  }
+  
+  .release-meta {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .release-download {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
+  }
+  
+  .download-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+  
+  .download-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .guide-steps {
+    gap: 25px;
+  }
+  
+  .step {
+    flex-direction: column;
+    text-align: center;
+    gap: 15px;
+  }
+  
+  .step-number {
+    align-self: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .platform-btn {
+    padding: 20px;
+  }
+  
+  .platform-icon {
+    font-size: 2rem;
+  }
+  
+  .release-header,
+  .release-features,
+  .release-download {
+    padding: 20px;
+  }
+  
+  .version-badge {
+    font-size: 1rem;
+    padding: 6px 12px;
+  }
+  
+  .guide-card {
+    padding: 30px 20px;
+  }
+  
+  .guide-card h3 {
+    font-size: 1.5rem;
+  }
+  
+  .step-number {
+    width: 40px;
+    height: 40px;
+    font-size: 1rem;
+  }
+  
+  .step-content h4 {
+    font-size: 1.1rem;
+  }
+}
