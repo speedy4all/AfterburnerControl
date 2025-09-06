@@ -59,6 +59,30 @@
         android:fillColor="#FFFFFF"
         android:pathData="M90,90 L110,90 L110,110 L90,110 Z" />
     
+    <!-- Bluetooth BLE indicator -->
+    <path
+        android:fillColor="#00BFFF"
+        android:pathData="M100,30 L110,40 L105,45 L100,40 L95,45 L90,40 Z" />
+    
+    <path
+        android:fillColor="#00BFFF"
+        android:pathData="M100,40 L110,50 L105,55 L100,50 L95,55 L90,50 Z" />
+    
+    <path
+        android:fillColor="#00BFFF"
+        android:pathData="M100,50 L110,60 L105,65 L100,60 L95,65 L90,60 Z" />
+    
+    <!-- BLE text indicator -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M30,30 L35,30 L35,35 L30,35 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M30,40 L35,40 L35,45 L30,45 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M30,50 L35,50 L35,55 L30,55 Z" />
+    
     <!-- App name text representation -->
     <path
         android:fillColor="#FFFFFF"

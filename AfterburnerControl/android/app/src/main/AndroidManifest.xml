@@ -10,6 +10,11 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     
+    <!-- Android 15 specific permissions -->
+    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
+    <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    
     <!-- BLE Features -->
     <uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
 
@@ -20,7 +25,10 @@
       android:roundIcon="@mipmap/ic_launcher_round"
       android:allowBackup="false"
       android:theme="@style/AppTheme"
-      android:supportsRtl="true">
+      android:supportsRtl="true"
+      android:dataExtractionRules="@xml/data_extraction_rules"
+      android:fullBackupContent="@xml/backup_rules"
+      android:requestLegacyExternalStorage="true">
       
       <!-- Splash Screen Activity -->
       <activity

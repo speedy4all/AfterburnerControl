@@ -1,4 +1,4 @@
-package com.afterburnercontrol
+package com.afterburnercontrol.ble
 
 import android.content.Intent
 import android.os.Bundle

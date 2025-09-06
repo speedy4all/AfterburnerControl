@@ -1,6 +1,7 @@
-package com.afterburnercontrol
+package com.afterburnercontrol.ble
 
 import android.app.Application
+import androidx.multidex.MultiDexApplication
 import com.facebook.react.PackageList
 import com.facebook.react.ReactApplication
 import com.facebook.react.ReactHost
@@ -10,7 +11,7 @@ import com.facebook.react.ReactPackage
 import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 import com.facebook.react.defaults.DefaultReactNativeHost
 
-class MainApplication : Application(), ReactApplication {
+class MainApplication : MultiDexApplication(), ReactApplication {
 
   override val reactNativeHost: ReactNativeHost =
       object : DefaultReactNativeHost(this) {
