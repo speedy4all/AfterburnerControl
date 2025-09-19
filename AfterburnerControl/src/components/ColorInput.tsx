@@ -7,8 +7,8 @@ import {
   Modal,
   Dimensions,
   ScrollView,
+  PanResponder,
 } from 'react-native';
-import Slider from '@react-native-community/slider';
 
 interface ColorInputProps {
   label: string;
@@ -17,6 +17,87 @@ interface ColorInputProps {
   onSend?: () => void;
   isDarkTheme?: boolean;
 }
+
+// Custom Slider Component
+const CustomSlider: React.FC<{
+  value: number;
+  onValueChange: (value: number) => void;
+  minimumValue: number;
+  maximumValue: number;
+  trackColor: string;
+  thumbColor: string;
+  isDarkTheme: boolean;
+}> = ({ value, onValueChange, minimumValue, maximumValue, trackColor, thumbColor, isDarkTheme }) => {
+  const [sliderWidth, setSliderWidth] = useState(0);
+  const [lastValue, setLastValue] = useState(value);
+  
+  const panResponder = PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: () => true,
+    onPanResponderGrant: (evt) => {
+      // Account for horizontal padding (10px on each side)
+      const adjustedX = evt.nativeEvent.locationX - 10;
+      const trackWidth = sliderWidth - 20; // Subtract padding
+      const newValue = Math.round(
+        minimumValue + 
+        ((adjustedX / trackWidth) * (maximumValue - minimumValue))
+      );
+      const clampedValue = Math.max(minimumValue, Math.min(maximumValue, newValue));
+      setLastValue(clampedValue);
+      onValueChange(clampedValue);
+    },
+    onPanResponderMove: (evt) => {
+      // Account for horizontal padding (10px on each side)
+      const adjustedX = evt.nativeEvent.locationX - 10;
+      const trackWidth = sliderWidth - 20; // Subtract padding
+      const newValue = Math.round(
+        minimumValue + 
+        ((adjustedX / trackWidth) * (maximumValue - minimumValue))
+      );
+      const clampedValue = Math.max(minimumValue, Math.min(maximumValue, newValue));
+      
+      // Only update if the value has changed significantly (smoothing)
+      if (Math.abs(clampedValue - lastValue) >= 1) {
+        setLastValue(clampedValue);
+        onValueChange(clampedValue);
+      }
+    },
+    onPanResponderRelease: () => {
+      // Touch ended
+    },
+  });
+
+  const percentage = ((value - minimumValue) / (maximumValue - minimumValue)) * 100;
+
+  return (
+    <View 
+      style={styles.customSliderContainer}
+      onLayout={(event) => setSliderWidth(event.nativeEvent.layout.width)}
+      {...panResponder.panHandlers}
+    >
+      <View style={[styles.customSliderTrack, isDarkTheme && styles.customSliderTrackDark]}>
+        <View 
+          style={[
+            styles.customSliderProgress, 
+            { 
+              width: `${percentage}%`,
+              backgroundColor: trackColor 
+            }
+          ]} 
+        />
+        <View 
+          style={[
+            styles.customSliderThumb, 
+            { 
+              left: (sliderWidth - 20) * (percentage / 100) - 10, // Center the thumb properly
+              backgroundColor: thumbColor 
+            }
+          ]} 
+        />
+      </View>
+    </View>
+  );
+};
 
 export const ColorInput: React.FC<ColorInputProps> = ({
   label,
@@ -83,14 +164,15 @@ export const ColorInput: React.FC<ColorInputProps> = ({
         </TouchableOpacity>
       )}
 
+
       <Modal
         visible={showColorPicker}
         transparent={true}
         animationType="slide"
         onRequestClose={() => setShowColorPicker(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, isDarkTheme && styles.modalContentDark]}>
+        <View style={styles.modalOverlay} pointerEvents="box-none">
+          <View style={[styles.modalContent, isDarkTheme && styles.modalContentDark]} pointerEvents="box-none">
             <View style={[styles.modalHeader, isDarkTheme && styles.modalHeaderDark]}>
               <Text style={[styles.modalTitle, isDarkTheme && styles.modalTitleDark]}>Select {label}</Text>
               <TouchableOpacity
@@ -121,45 +203,61 @@ export const ColorInput: React.FC<ColorInputProps> = ({
               {/* RGB Sliders */}
               <Text style={[styles.sectionTitle, isDarkTheme && styles.sectionTitleDark]}>Custom RGB</Text>
               
+              
               <View style={styles.sliderContainer}>
                 <Text style={[styles.sliderLabel, isDarkTheme && styles.sliderLabelDark]}>Red: {color.r} (0-255)</Text>
-                <Slider
-                  style={styles.slider}
+                <View style={[styles.valueIndicator, isDarkTheme && styles.valueIndicatorDark]}>
+                  <Text style={[styles.valueText, isDarkTheme && styles.valueTextDark]}>{color.r}</Text>
+                </View>
+                
+                
+                {/* Custom Red Slider */}
+                <CustomSlider
+                  value={color.r}
+                  onValueChange={(value) => {
+                    handleColorChange({ ...color, r: value });
+                  }}
                   minimumValue={0}
                   maximumValue={255}
-                  value={color.r}
-                  onValueChange={(value) => handleColorChange({ ...color, r: Math.round(value) })}
-                  minimumTrackTintColor="#FF0000"
-                  maximumTrackTintColor="#555555"
-                  thumbStyle={{ backgroundColor: '#FF0000' }}
+                  trackColor="#FF0000"
+                  thumbColor="#FF0000"
+                  isDarkTheme={isDarkTheme}
                 />
               </View>
 
               <View style={styles.sliderContainer}>
                 <Text style={[styles.sliderLabel, isDarkTheme && styles.sliderLabelDark]}>Green: {color.g} (0-255)</Text>
-                <Slider
-                  style={styles.slider}
+                <View style={[styles.valueIndicator, isDarkTheme && styles.valueIndicatorDark]}>
+                  <Text style={[styles.valueText, isDarkTheme && styles.valueTextDark]}>{color.g}</Text>
+                </View>
+                <CustomSlider
+                  value={color.g}
+                  onValueChange={(value) => {
+                    handleColorChange({ ...color, g: value });
+                  }}
                   minimumValue={0}
                   maximumValue={255}
-                  value={color.g}
-                  onValueChange={(value) => handleColorChange({ ...color, g: Math.round(value) })}
-                  minimumTrackTintColor="#00FF00"
-                  maximumTrackTintColor="#555555"
-                  thumbStyle={{ backgroundColor: '#00FF00' }}
+                  trackColor="#00FF00"
+                  thumbColor="#00FF00"
+                  isDarkTheme={isDarkTheme}
                 />
               </View>
 
               <View style={styles.sliderContainer}>
                 <Text style={[styles.sliderLabel, isDarkTheme && styles.sliderLabelDark]}>Blue: {color.b} (0-255)</Text>
-                <Slider
-                  style={styles.slider}
+                <View style={[styles.valueIndicator, isDarkTheme && styles.valueIndicatorDark]}>
+                  <Text style={[styles.valueText, isDarkTheme && styles.valueTextDark]}>{color.b}</Text>
+                </View>
+                <CustomSlider
+                  value={color.b}
+                  onValueChange={(value) => {
+                    handleColorChange({ ...color, b: value });
+                  }}
                   minimumValue={0}
                   maximumValue={255}
-                  value={color.b}
-                  onValueChange={(value) => handleColorChange({ ...color, b: Math.round(value) })}
-                  minimumTrackTintColor="#0000FF"
-                  maximumTrackTintColor="#555555"
-                  thumbStyle={{ backgroundColor: '#0000FF' }}
+                  trackColor="#0000FF"
+                  thumbColor="#0000FF"
+                  isDarkTheme={isDarkTheme}
                 />
               </View>
 
@@ -348,10 +446,6 @@ const styles = StyleSheet.create({
   sliderLabelDark: {
     color: '#cccccc', // Light gray text for dark theme
   },
-  slider: {
-    width: '100%',
-    height: 40,
-  },
   currentColorContainer: {
     alignItems: 'center',
     marginTop: 20,
@@ -375,5 +469,66 @@ const styles = StyleSheet.create({
   },
   currentColorPreviewDark: {
     borderColor: '#555555', // Dark border
+  },
+  customSliderContainer: {
+    height: 50,
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 15, // Add vertical padding for better touch area
+  },
+  customSliderTrack: {
+    height: 8,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 4,
+    position: 'relative',
+  },
+  customSliderTrackDark: {
+    backgroundColor: '#404040',
+  },
+  customSliderProgress: {
+    height: 8,
+    borderRadius: 4,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+  },
+  customSliderThumb: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    position: 'absolute',
+    top: -6,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+    borderWidth: 2,
+    borderColor: '#ffffff',
+  },
+  valueIndicator: {
+    alignItems: 'center',
+    marginVertical: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 12,
+    alignSelf: 'center',
+  },
+  valueIndicatorDark: {
+    backgroundColor: '#404040',
+  },
+  valueText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333333',
+    minWidth: 30,
+    textAlign: 'center',
+  },
+  valueTextDark: {
+    color: '#ffffff',
   },
 });

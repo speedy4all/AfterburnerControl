@@ -204,11 +204,13 @@ export const AfterburnerScreen: React.FC = () => {
       if (success) {
         setConnected(true);
         
-
-        
-        // Read current settings
-        const currentSettings = await readSettings();
-        setSettings(currentSettings);
+        // Read current settings only once on initial connection
+        try {
+          const currentSettings = await readSettings();
+          setSettings(currentSettings);
+        } catch (error) {
+          // Keep the current local settings if reading fails
+        }
         
         // Read initial calibration status
         try {
