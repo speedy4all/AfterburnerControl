@@ -32,102 +32,104 @@
 #endif
 
 LEDEffects::LEDEffects() {
-  leds = nullptr;
-  numLeds = 0;
+  ledDriver = nullptr;
   lastUpdate = 0;
   noiseOffset = 0;
-  
-  // Initialize afterburner colors
-  abCoreColor1 = CRGB(90, 60, 255);   // Violet-blue
-  abCoreColor2 = CRGB(255, 90, 255);  // Magenta-purple
 }
 
 LEDEffects::~LEDEffects() {
-  if (leds) {
-    delete[] leds;
-  }
+  // LEDDriver is managed externally, no cleanup needed here
 }
 
-void LEDEffects::begin(uint16_t ledCount) {
-  if (leds) {
-    delete[] leds;
+void LEDEffects::begin(LEDDriver* driver) {
+  if (!driver) {
+    Serial.println("LEDEffects: ERROR - LEDDriver pointer is null!");
+    return;
   }
   
-  numLeds = ledCount;
-  leds = new CRGB[numLeds];
-  
-  FastLED.addLeds<WS2812B, LED_STRIP_PIN, GRB>(leds, numLeds);
-  FastLED.setBrightness(200);
-  FastLED.clear();
-  FastLED.show();
-}
-
-void LEDEffects::update(uint16_t newLedCount) {
-  if (newLedCount != numLeds) {
-    begin(newLedCount);
+  if (!driver->isInitialized()) {
+    Serial.println("LEDEffects: ERROR - LEDDriver not initialized! Call ledDriver.begin() first.");
+    return;
   }
+  
+  ledDriver = driver;
+  Serial.println("LEDEffects: Initialized for 4-channel MOSFET control");
 }
 
 void LEDEffects::render(const AfterburnerSettings& settings, float throttle) {
-  // Clear all LEDs
-  FastLED.clear();
+  // All 4 channels active with base intensity proportional to throttle
+  float channelIntensities[4] = {0.0f, 0.0f, 0.0f, 0.0f};
   
-  // Render core effect
-  renderCoreEffect(settings, throttle);
+  // Render core effect (base intensity for all channels)
+  renderCoreEffect(settings, throttle, channelIntensities);
   
-  // Render afterburner overlay
-  renderAfterburnerOverlay(settings, throttle);
+  // Render afterburner overlay (adds intensity boost with rotation)
+  renderAfterburnerOverlay(settings, throttle, channelIntensities);
   
-  // Update brightness
-  FastLED.setBrightness(settings.brightness);
+  // Apply flicker effect
+  addFlicker(channelIntensities, settings);
   
-  // Show the LEDs
-  FastLED.show();
+  // Apply sparkles during strong afterburner
+  float abThreshold = settings.abThreshold / 100.0f;
+  if (throttle > abThreshold) {
+    float abIntensity = (throttle - abThreshold) / (1.0f - abThreshold);
+    if (abIntensity > 0.4f) {
+      addSparkles(channelIntensities, abIntensity, settings);
+    }
+  }
+  
+  // Check if LEDDriver is available
+  if (!ledDriver) {
+    Serial.println("LEDEffects: ERROR - LEDDriver not initialized!");
+    return;
+  }
+  
+  // Convert to PWM values and apply to LEDDriver
+  for (uint8_t i = 0; i < NUM_MOSFET_CHANNELS; i++) {
+    // Clamp intensity to 0-1 range
+    channelIntensities[i] = constrain(channelIntensities[i], 0.0f, 1.0f);
+    
+    // Apply brightness setting and convert to PWM (0-255)
+    uint8_t pwmValue = (uint8_t)(channelIntensities[i] * settings.brightness);
+    ledDriver->setChannel(i, pwmValue);
+  }
+  
+  // Update PWM outputs
+  ledDriver->update();
   
   // Update noise offset for flicker
   noiseOffset++;
 }
 
 void LEDEffects::setBrightness(uint8_t brightness) {
-  FastLED.setBrightness(brightness);
+  // Brightness is applied in render() method
+  // This method is kept for API compatibility
 }
 
-void LEDEffects::renderCoreEffect(const AfterburnerSettings& settings, float throttle) {
+void LEDEffects::renderCoreEffect(const AfterburnerSettings& settings, float throttle, float channelIntensities[4]) {
   // Get eased throttle value based on mode
   float easedThrottle = getEasedThrottle(throttle, settings.mode);
   
-  // Create start and end colors
-  CRGB startColor = CRGB(settings.startColor[0], settings.startColor[1], settings.startColor[2]);
-  CRGB endColor = CRGB(settings.endColor[0], settings.endColor[1], settings.endColor[2]);
+  // Calculate base intensity from start color (average RGB)
+  float baseIntensity = calculateIntensityFromColor(settings.startColor);
   
-  // Calculate base brightness proportional to throttle
-  uint8_t baseBrightness = 30 + (uint8_t)(200 * throttle);
+  // All 4 channels active with base intensity proportional to throttle
+  for (uint8_t i = 0; i < NUM_MOSFET_CHANNELS; i++) {
+    channelIntensities[i] = easedThrottle * baseIntensity;
+  }
   
-  // Add breathing effect based on speed setting (for Ease and Pulse modes)
+  // Apply breathing effect (for Ease and Pulse modes)
   if (settings.mode == 1 || settings.mode == 2) {
     // Use speedMs to control breathing frequency
     float breathingSpeed = 1000.0f / (float)settings.speedMs;
-    float breathing = 0.8f + 0.2f * sin(millis() * breathingSpeed);
-    baseBrightness = (uint8_t)(baseBrightness * breathing);
-  }
-  
-  // Render each LED
-  for (uint16_t i = 0; i < numLeds; i++) {
-    // Interpolate color based on eased throttle
-    CRGB color = lerpColor(startColor, endColor, easedThrottle);
-    
-    // Apply base brightness
-    color.nscale8(baseBrightness);
-    
-    // Add flicker effect
-    addFlicker(i, 20, settings);
-    
-    // Set the LED
-    leds[i] = color;
+    float breathing = 0.8f + 0.2f * sin(millis() * breathingSpeed * 0.001f);
+    for (uint8_t i = 0; i < NUM_MOSFET_CHANNELS; i++) {
+      channelIntensities[i] *= breathing;
+    }
   }
 }
 
-void LEDEffects::renderAfterburnerOverlay(const AfterburnerSettings& settings, float throttle) {
+void LEDEffects::renderAfterburnerOverlay(const AfterburnerSettings& settings, float throttle, float channelIntensities[4]) {
   // Calculate afterburner threshold
   float abThreshold = settings.abThreshold / 100.0f;
   
@@ -139,35 +141,34 @@ void LEDEffects::renderAfterburnerOverlay(const AfterburnerSettings& settings, f
   float abIntensity = (throttle - abThreshold) / (1.0f - abThreshold);
   abIntensity = constrain(abIntensity, 0.0f, 1.0f);
   
-  // Apply pulse modulation for Pulse mode
+  // Calculate afterburner intensity from end color (average RGB)
+  float abColorIntensity = calculateIntensityFromColor(settings.endColor);
+  float abBoost = abIntensity * abColorIntensity;
+  
+  // Create rotating pattern for circular effect
+  // Each channel gets phase offset for rotation
+  float rotationSpeed = CIRCLE_ROTATION_SPEED * (1000.0f / (float)settings.speedMs);
+  float time = millis() * rotationSpeed * 0.001f;  // Convert to seconds
+  
+  for (uint8_t i = 0; i < NUM_MOSFET_CHANNELS; i++) {
+    // Create sine wave pattern with phase offset per channel
+    // This creates a rotating effect around the circle
+    float phase = (i * M_PI * 2.0f) / NUM_MOSFET_CHANNELS;  // 90° offset per channel (360°/4)
+    float rotation = sin(time + phase);
+    
+    // Apply afterburner boost with rotation pattern
+    // Rotation creates wave effect: 0.5 + 0.5*sin gives 0-1 range
+    float rotationFactor = 0.5f + 0.5f * rotation;
+    channelIntensities[i] += abBoost * rotationFactor;
+  }
+  
+  // Pulse modulation for pulse mode
   if (settings.mode == 2) {
-    // Use speedMs to control pulse frequency (faster speed = faster pulse)
-    // Convert speedMs to frequency: 100ms = fast pulse, 5000ms = slow pulse
-    float pulseFrequency = 1000.0f / (float)settings.speedMs;
-    float pulse = 0.6f + 0.4f * sin(millis() * pulseFrequency);
-    abIntensity *= pulse;
-  }
-  
-  // Render afterburner effect
-  for (uint16_t i = 0; i < numLeds; i++) {
-    // Calculate spatial profile (stronger in center)
-    float position = (float)i / numLeds;
-    float spatialProfile = 0.65f + 0.35f * sin(2.0f * M_PI * position);
-    
-    // Blend afterburner colors based on throttle
-    CRGB abColor = lerpColor(abCoreColor1, abCoreColor2, throttle);
-    
-    // Scale by intensity and spatial profile
-    uint8_t abBrightness = (uint8_t)(255 * abIntensity * spatialProfile);
-    abColor.nscale8(abBrightness);
-    
-    // Add to existing LED color
-    leds[i] += abColor;
-  }
-  
-  // Add sparkles when afterburner is strong
-  if (abIntensity > 0.4f) {
-    addSparkles(abIntensity, settings);
+    float pulseFreq = 1000.0f / (float)settings.speedMs;
+    float pulse = 0.6f + 0.4f * sin(millis() * pulseFreq * 0.001f);
+    for (uint8_t i = 0; i < NUM_MOSFET_CHANNELS; i++) {
+      channelIntensities[i] *= pulse;
+    }
   }
 }
 
@@ -184,40 +185,39 @@ float LEDEffects::getEasedThrottle(float throttle, uint8_t mode) {
   }
 }
 
-void LEDEffects::addFlicker(uint16_t ledIndex, uint8_t intensity, const AfterburnerSettings& settings) {
-  // Generate noise-based flicker using FastLED noise functions
+void LEDEffects::addFlicker(float channelIntensities[4], const AfterburnerSettings& settings) {
+  // Apply subtle random variations to all channels
   // Use speedMs to control flicker speed (faster speed = faster flicker)
   float flickerSpeed = 1000.0f / (float)settings.speedMs;
-  uint8_t noise = inoise8(ledIndex * 12, (millis() * flickerSpeed + ledIndex * 7) * 8 + noiseOffset);
   
-  // Map noise to flicker range
-  int8_t flicker = map(noise, 0, 255, -intensity, intensity);
-  
-  // Apply flicker to LED
-  leds[ledIndex].addToRGB(flicker);
-}
-
-void LEDEffects::addSparkles(float abIntensity, const AfterburnerSettings& settings) {
-  // Add random white sparkles
-  // Use speedMs to control sparkle frequency (faster speed = more sparkles)
-  float sparkleFrequency = 1000.0f / (float)settings.speedMs;
-  uint16_t sparkleChance = (uint16_t)(abIntensity * 50 * sparkleFrequency);
-  
-  for (uint16_t i = 0; i < numLeds; i++) {
-    if (random(1000) < sparkleChance) {
-      uint8_t sparkleIntensity = random(50, 150);
-      leds[i] += CRGB(sparkleIntensity, sparkleIntensity, sparkleIntensity);
+  for (uint8_t i = 0; i < NUM_MOSFET_CHANNELS; i++) {
+    if (channelIntensities[i] > 0) {
+      // Generate pseudo-random flicker based on time and channel
+      // Use millis() and channel index for deterministic randomness
+      uint32_t seed = (millis() * flickerSpeed * 0.001f) + (i * 1000) + noiseOffset;
+      float flicker = 1.0f + (sin(seed) * 0.03f);  // ±3% variation
+      channelIntensities[i] = constrain(channelIntensities[i] * flicker, 0.0f, 1.0f);
     }
   }
 }
 
-CRGB LEDEffects::lerpColor(CRGB color1, CRGB color2, float factor) {
-  factor = constrain(factor, 0.0f, 1.0f);
+void LEDEffects::addSparkles(float channelIntensities[4], float abIntensity, const AfterburnerSettings& settings) {
+  // Add random brief intensity spikes on random channels
+  // Use speedMs to control sparkle frequency (faster speed = more sparkles)
+  float sparkleFrequency = 1000.0f / (float)settings.speedMs;
+  float sparkleChance = abIntensity * 0.1f * sparkleFrequency;
   
-  CRGB result;
-  result.r = (uint8_t)(color1.r + (color2.r - color1.r) * factor);
-  result.g = (uint8_t)(color1.g + (color2.g - color1.g) * factor);
-  result.b = (uint8_t)(color1.b + (color2.b - color1.b) * factor);
-  
-  return result;
+  for (uint8_t i = 0; i < NUM_MOSFET_CHANNELS; i++) {
+    // Random chance for sparkle on this channel
+    if (random(1000) < (sparkleChance * 1000)) {
+      channelIntensities[i] = min(1.0f, channelIntensities[i] + 0.3f);
+    }
+  }
+}
+
+float LEDEffects::calculateIntensityFromColor(uint8_t color[3]) {
+  // Calculate intensity as average of RGB values
+  // Returns normalized value (0.0 - 1.0)
+  float intensity = (color[0] + color[1] + color[2]) / 3.0f / 255.0f;
+  return constrain(intensity, 0.0f, 1.0f);
 }

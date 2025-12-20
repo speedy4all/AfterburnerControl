@@ -20,6 +20,9 @@ export const BLE_UUIDS = {
   THROTTLE_CALIBRATION: 'b5f9a010-2b6c-4f6a-93b1-2f1f5f9ab010',
   THROTTLE_CALIBRATION_STATUS: 'b5f9a011-2b6c-4f6a-93b1-2f1f5f9ab011',
   THROTTLE_CALIBRATION_RESET: 'b5f9a012-2b6c-4f6a-93b1-2f1f5f9ab012',
+  
+  // Hardware version UUID (optional, for auto-detection)
+  HARDWARE_VERSION: 'b5f9a013-2b6c-4f6a-93b1-2f1f5f9ab013',
 };
 
 // Device name to scan for

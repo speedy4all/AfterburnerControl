@@ -32,8 +32,12 @@ import {
   startThrottleCalibration,
   readThrottleCalibrationStatus,
   resetThrottleCalibration,
+  detectHardwareType,
+  getHardwareInfo,
   AfterburnerSettings,
   DeviceStatus,
+  HardwareType,
+  HardwareInfo,
 } from '../ble/device';
 
 // Throttle calibration functions now use the real BLE functions from device.ts
@@ -50,6 +54,10 @@ export const AfterburnerScreen: React.FC = () => {
   const [_permissionsGranted, setPermissionsGranted] = useState<boolean>(false);
   const [_focusedInput, setFocusedInput] = useState<string | null>(null);
   const [isDarkTheme, setIsDarkTheme] = useState(false);
+  
+  // Hardware type state
+  const [hardwareType, setHardwareType] = useState<HardwareType | null>(null);
+  const [hardwareInfo, setHardwareInfo] = useState<HardwareInfo | null>(null);
   
   // Theme persistence functions
   const saveThemePreference = async (isDark: boolean) => {
@@ -190,6 +198,9 @@ export const AfterburnerScreen: React.FC = () => {
       try {
         await disconnectFromAfterburner();
         setConnected(false);
+        // Reset hardware type on disconnect
+        setHardwareType(null);
+        setHardwareInfo(null);
       } catch (error) {
         Alert.alert('Error', 'Failed to disconnect');
       }
@@ -203,6 +214,20 @@ export const AfterburnerScreen: React.FC = () => {
       const success = await connectToAfterburner();
       if (success) {
         setConnected(true);
+        
+        // Detect hardware type on connection
+        try {
+          const detectedType = await detectHardwareType();
+          const info = await getHardwareInfo();
+          setHardwareType(detectedType);
+          setHardwareInfo(info);
+          console.log('Hardware detected:', detectedType === HardwareType.NEW ? 'NEW (36 LEDs, 4 channels)' : 'LEGACY (Pixel LEDs)');
+        } catch (error) {
+          console.warn('Failed to detect hardware type:', error);
+          // Default to NEW hardware if detection fails
+          setHardwareType(HardwareType.NEW);
+          setHardwareInfo({ type: HardwareType.NEW, numChannels: 4, totalLeds: 36 });
+        }
         
         // Read current settings only once on initial connection
         try {
@@ -292,7 +317,7 @@ export const AfterburnerScreen: React.FC = () => {
 
   const sendSpeed = async () => {
     try {
-      const speedValue = parseInt(inputValues.speedMs);
+      const speedValue = parseInt(inputValues.speedMs, 10);
       if (isNaN(speedValue) || speedValue < 100 || speedValue > 5000) {
         Alert.alert('Invalid Input', 'Speed must be between 100-5000 ms');
         return;
@@ -308,7 +333,7 @@ export const AfterburnerScreen: React.FC = () => {
 
   const sendBrightness = async () => {
     try {
-      const brightnessValue = parseInt(inputValues.brightness);
+      const brightnessValue = parseInt(inputValues.brightness, 10);
       if (isNaN(brightnessValue) || brightnessValue < 10 || brightnessValue > 255) {
         Alert.alert('Invalid Input', 'Brightness must be between 10-255');
         return;
@@ -323,8 +348,14 @@ export const AfterburnerScreen: React.FC = () => {
   };
 
   const sendNumLeds = async () => {
+    // Only allow numLeds changes for legacy hardware
+    if (hardwareType === HardwareType.NEW) {
+      Alert.alert('Not Available', 'LED count is fixed at 36 LEDs (4 channels) for new hardware');
+      return;
+    }
+    
     try {
-      const numLedsValue = parseInt(inputValues.numLeds);
+      const numLedsValue = parseInt(inputValues.numLeds, 10);
       if (isNaN(numLedsValue) || numLedsValue < 1 || numLedsValue > 100) {
         Alert.alert('Invalid Input', 'Number of LEDs must be between 1-100');
         return;
@@ -340,7 +371,7 @@ export const AfterburnerScreen: React.FC = () => {
 
   const sendAbThreshold = async () => {
     try {
-      const thresholdValue = parseInt(inputValues.abThreshold);
+      const thresholdValue = parseInt(inputValues.abThreshold, 10);
       if (isNaN(thresholdValue) || thresholdValue < 0 || thresholdValue > 100) {
         Alert.alert('Invalid Input', 'Afterburner threshold must be between 0-100%');
         return;
@@ -416,7 +447,9 @@ export const AfterburnerScreen: React.FC = () => {
   // Push all settings
   const handlePushAll = async () => {
     try {
-      await pushAllSettings(settings);
+      // Use detected hardware type or detect again if not available
+      const hwType = hardwareType || await detectHardwareType();
+      await pushAllSettings(settings, hwType);
       Alert.alert('Success', 'All settings pushed to device');
     } catch (error) {
       Alert.alert('Error', 'Failed to push settings');
@@ -504,10 +537,10 @@ export const AfterburnerScreen: React.FC = () => {
     setInputValues({
       speedMs: settings.speedMs.toString(),
       brightness: settings.brightness.toString(),
-      numLeds: settings.numLeds.toString(),
+      numLeds: hardwareType === HardwareType.LEGACY ? settings.numLeds.toString() : '36',
       abThreshold: settings.abThreshold.toString(),
     });
-  }, [settings.speedMs, settings.brightness, settings.numLeds, settings.abThreshold]);
+  }, [settings.speedMs, settings.brightness, settings.numLeds, settings.abThreshold, hardwareType]);
  
   return (
          <ScrollView style={[styles.container, isDarkTheme && styles.containerDark]}>
@@ -646,16 +679,23 @@ export const AfterburnerScreen: React.FC = () => {
 
                      {/* Color Controls */}
            <View style={[styles.section, isDarkTheme && styles.sectionDark]}>
-             <Text style={[styles.sectionTitle, isDarkTheme && styles.sectionTitleDark]}>Colors</Text>
+             <Text style={[styles.sectionTitle, isDarkTheme && styles.sectionTitleDark]}>
+               {hardwareType === HardwareType.NEW ? 'Intensity Colors' : 'Colors'}
+             </Text>
+             {hardwareType === HardwareType.NEW && (
+               <Text style={[styles.helpText, isDarkTheme && styles.helpTextDark]}>
+                 RGB values control intensity (average of R+G+B). All LEDs are white/5W LEDs.
+               </Text>
+             )}
                          <ColorInput
-               label="Start Color"
+               label={hardwareType === HardwareType.NEW ? "Base Intensity Color" : "Start Color"}
                color={settings.startColor}
                onColorChange={(color) => updateSettings({ startColor: color })}
                onSend={sendStartColor}
                isDarkTheme={isDarkTheme}
              />
              <ColorInput
-               label="End Color"
+               label={hardwareType === HardwareType.NEW ? "Afterburner Intensity Color" : "End Color"}
                color={settings.endColor}
                onColorChange={(color) => updateSettings({ endColor: color })}
                onSend={sendEndColor}
@@ -717,32 +757,59 @@ export const AfterburnerScreen: React.FC = () => {
             <Text style={styles.rangeText}>Range: 10-255</Text>
           </View>
 
-                     {/* Number of LEDs */}
-           <View style={[styles.section, isDarkTheme && styles.sectionDark]}>
-             <Text style={[styles.sectionTitle, isDarkTheme && styles.sectionTitleDark]}>Number of LEDs - 1-100</Text>
-            <View style={styles.inputRow}>
-                             <TextInput
-                 style={[styles.numberInput, isDarkTheme && styles.numberInputDark]}
-                 value={inputValues.numLeds}
-                onChangeText={(text) => {
-                  setInputValues(prev => ({ ...prev, numLeds: text }));
-                }}
-                keyboardType="numeric"
-                placeholder="45"
-                editable={true}
-                selectTextOnFocus={true}
-                clearButtonMode="while-editing"
-                returnKeyType="done"
-                blurOnSubmit={true}
-                onFocus={() => setFocusedInput('numLeds')}
-                onBlur={() => setFocusedInput(null)}
-              />
-              <TouchableOpacity style={styles.sendButton} onPress={sendNumLeds}>
-                <Text style={styles.sendButtonText}>Send</Text>
-              </TouchableOpacity>
+                     {/* Hardware Info / Number of LEDs */}
+          {hardwareType === HardwareType.NEW ? (
+            // Show hardware info for new hardware
+            <View style={[styles.section, isDarkTheme && styles.sectionDark]}>
+              <Text style={[styles.sectionTitle, isDarkTheme && styles.sectionTitleDark]}>Hardware Configuration</Text>
+              <View style={[styles.hardwareInfo, isDarkTheme && styles.hardwareInfoDark]}>
+                <Text style={[styles.hardwareInfoText, isDarkTheme && styles.hardwareInfoTextDark]}>
+                  Type: New Hardware (MOSFET Control)
+                </Text>
+                <Text style={[styles.hardwareInfoText, isDarkTheme && styles.hardwareInfoTextDark]}>
+                  Total LEDs: {hardwareInfo?.totalLeds || 36}
+                </Text>
+                <Text style={[styles.hardwareInfoText, isDarkTheme && styles.hardwareInfoTextDark]}>
+                  Channels: {hardwareInfo?.numChannels || 4} MOSFETs
+                </Text>
+                <Text style={[styles.hardwareInfoText, isDarkTheme && styles.hardwareInfoTextDark]}>
+                  LEDs per Channel: {hardwareInfo?.totalLeds && hardwareInfo?.numChannels 
+                    ? Math.floor(hardwareInfo.totalLeds / hardwareInfo.numChannels) 
+                    : 9}
+                </Text>
+              </View>
+              <Text style={[styles.helpText, isDarkTheme && styles.helpTextDark]}>
+                LED count is fixed and cannot be changed. All 4 channels are active with varying intensities.
+              </Text>
             </View>
-            <Text style={styles.rangeText}>Range: 1-100 LEDs</Text>
-          </View>
+          ) : (
+            // Show LED count control for legacy hardware
+            <View style={[styles.section, isDarkTheme && styles.sectionDark]}>
+              <Text style={[styles.sectionTitle, isDarkTheme && styles.sectionTitleDark]}>Number of LEDs - 1-100</Text>
+              <View style={styles.inputRow}>
+                <TextInput
+                  style={[styles.numberInput, isDarkTheme && styles.numberInputDark]}
+                  value={inputValues.numLeds}
+                  onChangeText={(text) => {
+                    setInputValues(prev => ({ ...prev, numLeds: text }));
+                  }}
+                  keyboardType="numeric"
+                  placeholder="45"
+                  editable={true}
+                  selectTextOnFocus={true}
+                  clearButtonMode="while-editing"
+                  returnKeyType="done"
+                  blurOnSubmit={true}
+                  onFocus={() => setFocusedInput('numLeds')}
+                  onBlur={() => setFocusedInput(null)}
+                />
+                <TouchableOpacity style={styles.sendButton} onPress={sendNumLeds}>
+                  <Text style={styles.sendButtonText}>Send</Text>
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.rangeText}>Range: 1-100 LEDs</Text>
+            </View>
+          )}
 
                                 {/* Afterburner Threshold */}
            <View style={[styles.section, isDarkTheme && styles.sectionDark]}>
@@ -1123,6 +1190,34 @@ const styles = StyleSheet.create({
     color: '#666',
     fontStyle: 'italic',
     marginTop: 4,
+  },
+  helpText: {
+    fontSize: 12,
+    color: '#666',
+    fontStyle: 'italic',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  helpTextDark: {
+    color: '#cccccc',
+  },
+  hardwareInfo: {
+    backgroundColor: '#f8f9fa',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  hardwareInfoDark: {
+    backgroundColor: '#404040',
+  },
+  hardwareInfoText: {
+    fontSize: 14,
+    color: '#333',
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  hardwareInfoTextDark: {
+    color: '#ffffff',
   },
   calibrationInfo: {
     fontSize: 14,

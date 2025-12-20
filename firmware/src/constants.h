@@ -10,10 +10,30 @@
 #define THROTTLE_CALIBRATION_STATUS_UUID "b5f9a011-2b6c-4f6a-93b1-2f1f5f9ab011"
 #define THROTTLE_CALIBRATION_RESET_UUID "b5f9a012-2b6c-4f6a-93b1-2f1f5f9ab012"
 
+// Hardware version UUID (optional, for auto-detection)
+#define HARDWARE_VERSION_UUID "b5f9a013-2b6c-4f6a-93b1-2f1f5f9ab013"
+
 // Pin definitions - centralized for consistency
 #define ONBOARD_LED_PIN 4      // GPIO4 for onboard LED (avoid TX conflict)
 #define THROTTLE_PIN 1         // GPIO1 for throttle input
-#define LED_STRIP_PIN 3        // GPIO3 for LED strip (avoid TX pin conflict)
+
+// MOSFET PWM pins for 4-channel LED control
+#define MOSFET_1_PIN 2        // GPIO 2 - Channel 0 (controls 9 LEDs)
+#define MOSFET_2_PIN 3         // GPIO 3 - Channel 1 (controls 9 LEDs)
+#define MOSFET_3_PIN 4         // GPIO 4 - Channel 2 (controls 9 LEDs)
+#define MOSFET_4_PIN 5         // GPIO 5 - Channel 3 (controls 9 LEDs)
+
+// LED configuration
+#define NUM_MOSFET_CHANNELS 4
+#define NUM_LEDS_PER_CHANNEL 9
+#define TOTAL_LEDS 36
+
+// PWM configuration
+#define PWM_FREQUENCY 5000     // 5kHz PWM frequency (good for LED dimming)
+#define PWM_RESOLUTION 8       // 8-bit resolution (0-255)
+
+// Circular effect parameters
+#define CIRCLE_ROTATION_SPEED 0.001f  // Rotation speed multiplier
 
 // Timing constants
 #define INITIAL_DELAY_MS 1000

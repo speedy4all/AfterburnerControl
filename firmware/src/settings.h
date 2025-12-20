@@ -8,11 +8,13 @@
 // Afterburner settings structure
 struct AfterburnerSettings {
   uint8_t mode;           // 0=Linear, 1=Ease, 2=Pulse
-  uint8_t startColor[3];  // RGB start color
-  uint8_t endColor[3];    // RGB end color
+  uint8_t startColor[3];  // RGB start color (used to calculate base intensity)
+  uint8_t endColor[3];    // RGB end color (used to calculate afterburner intensity)
   uint16_t speedMs;       // Animation speed in milliseconds
   uint8_t brightness;     // Brightness cap (10-255)
-  uint16_t numLeds;       // Number of LEDs
+  uint16_t numLeds;       // Number of LEDs (DEPRECATED: kept for backward compatibility)
+                          // New hardware: Fixed at 36 LEDs (4 channels × 9 LEDs)
+                          // Legacy hardware: Configurable (1-300)
   uint8_t abThreshold;    // Afterburner threshold (0-100%)
   uint16_t throttleMin;   // Calibrated min throttle PWM value
   uint16_t throttleMax;   // Calibrated max throttle PWM value

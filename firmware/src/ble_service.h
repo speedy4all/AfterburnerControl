@@ -49,6 +49,9 @@ private:
   BLECharacteristic* pThrottleCalibrationStatusCharacteristic;
   BLECharacteristic* pThrottleCalibrationResetCharacteristic;
   
+  // Hardware version characteristic (optional, for auto-detection)
+  BLECharacteristic* pHardwareVersionCharacteristic;
+  
   // Status notification timer
   unsigned long lastStatusUpdate;
   

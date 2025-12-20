@@ -163,6 +163,9 @@ AfterburnerBLEService::AfterburnerBLEService(SettingsManager* settings, Throttle
   pThrottleCalibrationCharacteristic = nullptr;
   pThrottleCalibrationStatusCharacteristic = nullptr;
   pThrottleCalibrationResetCharacteristic = nullptr;
+  
+  // Initialize hardware version characteristic to nullptr
+  pHardwareVersionCharacteristic = nullptr;
 }
 
 void AfterburnerBLEService::begin() {
@@ -334,6 +337,18 @@ void AfterburnerBLEService::createService() {
   }
   Serial.printf("BLE: Throttle calibration reset characteristic created - UUID: %s\n", THROTTLE_CALIBRATION_RESET_UUID);
   
+  // Create hardware version characteristic (optional, for auto-detection)
+  pHardwareVersionCharacteristic = pService->createCharacteristic(
+    HARDWARE_VERSION_UUID,
+    BLECharacteristic::PROPERTY_READ
+  );
+  if (!pHardwareVersionCharacteristic) {
+    Serial.println("ERROR: Failed to create hardware version characteristic!");
+    // Non-critical, continue anyway
+  } else {
+    Serial.printf("BLE: Hardware version characteristic created - UUID: %s\n", HARDWARE_VERSION_UUID);
+  }
+  
   pStatusCharacteristic = pService->createCharacteristic(
     STATUS_UUID,
     BLECharacteristic::PROPERTY_READ |
@@ -480,10 +495,20 @@ void AfterburnerBLEService::updateCharacteristicValues() {
   pBrightnessCharacteristic->setValue(&settings.brightness, 1);
   Serial.printf("BLE: Brightness characteristic set to: %d\n", settings.brightness);
   
+  // Set numLeds to fixed value (36) for new hardware
+  // This allows apps to detect hardware type: 36 or 0 = new hardware, 1-300 = legacy
+  uint16_t numLedsValue = TOTAL_LEDS;  // Fixed at 36 for new hardware
   uint8_t numLedsBytes[2];
-  uint16ToBytes(settings.numLeds, numLedsBytes);
+  uint16ToBytes(numLedsValue, numLedsBytes);
   pNumLedsCharacteristic->setValue(numLedsBytes, 2);
-  Serial.printf("BLE: Num LEDs characteristic set to: %d\n", settings.numLeds);
+  Serial.printf("BLE: Num LEDs characteristic set to: %d (fixed for new hardware)\n", numLedsValue);
+  
+  // Set hardware version to 2 (new hardware)
+  if (pHardwareVersionCharacteristic) {
+    uint8_t hardwareVersion = 2;  // 1 = Legacy, 2 = New hardware
+    pHardwareVersionCharacteristic->setValue(&hardwareVersion, 1);
+    Serial.printf("BLE: Hardware version characteristic set to: %d (new hardware)\n", hardwareVersion);
+  }
   
   pAbThresholdCharacteristic->setValue(&settings.abThreshold, 1);
   Serial.printf("BLE: AB Threshold characteristic set to: %d%%\n", settings.abThreshold);
@@ -794,26 +819,19 @@ void AfterburnerBLEService::handleBrightnessWrite(BLECharacteristic* pCharacteri
 void AfterburnerBLEService::handleNumLedsWrite(BLECharacteristic* pCharacteristic) {
   Serial.println("BLE: 🔢 handleNumLedsWrite called!");
   String value = pCharacteristic->getValue();
+  
+  // Accept write for backward compatibility, but ignore value
+  // New hardware has fixed 36 LEDs (4 channels × 9 LEDs), so numLeds setting is ignored
   if (value.length() == 2) {
     uint8_t numLedsBytes[2] = {value.charAt(0), value.charAt(1)};
     uint16_t numLeds = bytesToUint16(numLedsBytes);
-    if (numLeds >= 1 && numLeds <= 300) {
-      AfterburnerSettings& settings = settingsManager->getSettings();
-      uint16_t oldNumLeds = settings.numLeds;
-      settings.numLeds = numLeds;
-      settingsManager->saveSettings();
-      Serial.printf("BLE: LED count changed via BLE: %d -> %d\n", oldNumLeds, numLeds);
-      
-      // Reload settings from flash memory to update the in-memory structure
-      settingsManager->loadSettings();
-      
-      // Verify the setting was actually saved
-      settingsManager->verifySettings();
-    } else {
-      Serial.printf("BLE: Invalid LED count value received: %d (valid range: 1-300)\n", numLeds);
-    }
+    Serial.printf("BLE: Num LEDs write received: %d (ignored - fixed at 36 LEDs, 4 channels)\n", numLeds);
+    
+    // No-op: Don't update settings, don't save
+    // This allows old apps to connect without errors, but the setting has no effect
+    // The characteristic will always return 36 when read
   } else {
-    Serial.printf("BLE: Invalid LED count data length: %d\n", value.length());
+    Serial.printf("BLE: Invalid LED count data length: %d (ignored)\n", value.length());
   }
 }
 

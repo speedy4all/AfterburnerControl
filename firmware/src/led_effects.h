@@ -2,36 +2,30 @@
 #define LED_EFFECTS_H
 
 #include <Arduino.h>
-#include <FastLED.h>
 #include "settings.h"
 #include "constants.h"
+#include "led_driver.h"
 
 class LEDEffects {
 private:
-  CRGB* leds;
-  uint16_t numLeds;
+  LEDDriver* ledDriver;
   unsigned long lastUpdate;
   uint8_t noiseOffset;
-  
-  // Afterburner colors
-  CRGB abCoreColor1;  // Violet-blue
-  CRGB abCoreColor2;  // Magenta-purple
-  
+
 public:
   LEDEffects();
   ~LEDEffects();
-  void begin(uint16_t ledCount);
-  void update(uint16_t newLedCount);
+  void begin(LEDDriver* driver);
   void render(const AfterburnerSettings& settings, float throttle);
   void setBrightness(uint8_t brightness);
   
 private:
-  void renderCoreEffect(const AfterburnerSettings& settings, float throttle);
-  void renderAfterburnerOverlay(const AfterburnerSettings& settings, float throttle);
+  void renderCoreEffect(const AfterburnerSettings& settings, float throttle, float channelIntensities[4]);
+  void renderAfterburnerOverlay(const AfterburnerSettings& settings, float throttle, float channelIntensities[4]);
   float getEasedThrottle(float throttle, uint8_t mode);
-  void addFlicker(uint16_t ledIndex, uint8_t intensity, const AfterburnerSettings& settings);
-  void addSparkles(float abIntensity, const AfterburnerSettings& settings);
-  CRGB lerpColor(CRGB color1, CRGB color2, float factor);
+  void addFlicker(float channelIntensities[4], const AfterburnerSettings& settings);
+  void addSparkles(float channelIntensities[4], float abIntensity, const AfterburnerSettings& settings);
+  float calculateIntensityFromColor(uint8_t color[3]);
 };
 
 #endif // LED_EFFECTS_H

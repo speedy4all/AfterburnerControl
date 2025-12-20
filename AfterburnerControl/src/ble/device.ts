@@ -1,20 +1,34 @@
 import bleManager from './bleManager';
 import { BLE_UUIDS, DEFAULT_VALUES } from './uuids';
 
+// Hardware types
+export enum HardwareType {
+  LEGACY = 1, // Pixel LEDs with configurable numLeds
+  NEW = 2, // 36 LED circle with 4 MOSFET channels
+}
+
 // Types for the afterburner settings
 export interface AfterburnerSettings {
   mode: number;
-  startColor: { r: number; g: number; b: number };
-  endColor: { r: number; g: number; b: number };
+  startColor: { r: number; g: number; b: number }; // Base intensity
+  endColor: { r: number; g: number; b: number }; // Afterburner intensity
   speedMs: number;
   brightness: number;
-  numLeds: number;
+  numLeds: number; // Kept for backward compatibility (ignored for new hardware)
   abThreshold: number;
 }
 
 export interface DeviceStatus {
   throttle: number;
   mode: number;
+}
+
+// Hardware info interface
+export interface HardwareInfo {
+  type: HardwareType;
+  numLeds?: number; // For legacy hardware
+  numChannels?: number; // For new hardware (always 4)
+  totalLeds?: number; // For new hardware (always 36)
 }
 
 // Global status callback for UI updates
@@ -274,17 +288,90 @@ export async function readSettings(): Promise<AfterburnerSettings> {
   }
 }
 
+// Detect hardware type on connection
+export async function detectHardwareType(): Promise<HardwareType> {
+  try {
+    // Try to read hardware version characteristic (if exists)
+    try {
+      const versionData = await bleManager.readCharacteristic(BLE_UUIDS.HARDWARE_VERSION);
+      if (versionData && versionData.length > 0) {
+        const version = versionData[0];
+        return version === 2 ? HardwareType.NEW : HardwareType.LEGACY;
+      }
+    } catch (error) {
+      // Hardware version characteristic doesn't exist, try fallback
+      console.log('Hardware version characteristic not available, using fallback detection');
+    }
+
+    // Fallback: Try to read NUM_LEDS characteristic
+    try {
+      const numLedsBytes = await bleManager.readCharacteristic(BLE_UUIDS.NUM_LEDS);
+      if (numLedsBytes && numLedsBytes.length >= 2) {
+        // eslint-disable-next-line no-bitwise
+        const numLeds = numLedsBytes[0] | (numLedsBytes[1] << 8);
+        // New hardware returns 36 or 0, legacy returns configurable value (1-300)
+        if (numLeds === 36 || numLeds === 0) {
+          return HardwareType.NEW;
+        } else if (numLeds >= 1 && numLeds <= 300) {
+          return HardwareType.LEGACY;
+        }
+      }
+    } catch (error) {
+      // If NUM_LEDS read fails, assume new hardware (graceful degradation)
+      console.warn('Could not detect hardware type, assuming NEW hardware');
+      return HardwareType.NEW;
+    }
+
+    // Default to new hardware if detection fails
+    return HardwareType.NEW;
+  } catch (error) {
+    console.error('Hardware type detection failed:', error);
+    return HardwareType.NEW; // Default to new hardware
+  }
+}
+
+// Get hardware info
+export async function getHardwareInfo(): Promise<HardwareInfo> {
+  const type = await detectHardwareType();
+
+  if (type === HardwareType.LEGACY) {
+    try {
+      const numLedsBytes = await bleManager.readCharacteristic(BLE_UUIDS.NUM_LEDS);
+      // eslint-disable-next-line no-bitwise
+      const numLeds = numLedsBytes[0] | (numLedsBytes[1] << 8);
+      return { type, numLeds };
+    } catch (error) {
+      return { type, numLeds: 45 }; // Default
+    }
+  } else {
+    return { type, numChannels: 4, totalLeds: 36 };
+  }
+}
+
 // Push all settings to device
-export async function pushAllSettings(settings: AfterburnerSettings): Promise<void> {
+export async function pushAllSettings(
+  settings: AfterburnerSettings,
+  hardwareType?: HardwareType
+): Promise<void> {
+  // If hardware type not provided, detect it
+  if (!hardwareType) {
+    hardwareType = await detectHardwareType();
+  }
+
   // Write all settings
   await writeMode(settings.mode);
   await writeStartColor(settings.startColor);
   await writeEndColor(settings.endColor);
   await writeSpeedMs(settings.speedMs);
   await writeBrightness(settings.brightness);
-  await writeNumLeds(settings.numLeds);
+
+  // Only write numLeds for legacy hardware
+  if (hardwareType === HardwareType.LEGACY) {
+    await writeNumLeds(settings.numLeds);
+  }
+
   await writeAbThreshold(settings.abThreshold);
-  
+
   // Save settings to ESP32 flash memory
   await savePreset();
 }

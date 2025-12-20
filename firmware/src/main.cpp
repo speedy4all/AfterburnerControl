@@ -3,11 +3,13 @@
 #include "settings.h"
 #include "throttle.h"
 #include "led_effects.h"
+#include "led_driver.h"
 #include "ble_service.h"
 
 // Global objects
 SettingsManager settingsManager;
 ThrottleReader throttleReader;
+LEDDriver ledDriver;  // LED driver for 4-channel MOSFET control
 LEDEffects ledEffects;
 AfterburnerBLEService bleService(&settingsManager, &throttleReader);
 
@@ -41,9 +43,12 @@ void setup() {
   // Initialize GPIO pins
   pinMode(ONBOARD_LED_PIN, OUTPUT);
   pinMode(THROTTLE_PIN, INPUT);
-  pinMode(LED_STRIP_PIN, OUTPUT);
   
   Serial.println("GPIO pins initialized");
+  
+  // Initialize LED driver (4-channel MOSFET PWM control)
+  ledDriver.begin();
+  Serial.println("LED driver initialized");
   
   // Initialize components
   Serial.println("Initializing components...");
@@ -89,9 +94,11 @@ void setup() {
   // Set demo mode if enabled
   throttleReader.setDemoMode(demoMode);
   
-  // Get LED count from settings instead of hardcoding
-  uint16_t numLeds = settingsManager.getSettings().numLeds;
-  ledEffects.begin(numLeds);
+  // Initialize LED effects (no longer needs numLeds - fixed at 4 channels, 36 LEDs)
+  ledEffects.begin(&ledDriver);
+  
+  // Note: numLeds setting is kept in settings for backward compatibility but is ignored
+  // New hardware uses fixed configuration: 4 MOSFET channels, 9 LEDs each, 36 total
   
   try {
     bleService.begin();
@@ -100,7 +107,7 @@ void setup() {
     Serial.println("BLE service initialization failed!");
   }
   
-  Serial.printf("LED count: %d, Demo mode: %s\n", numLeds, demoMode ? "enabled" : "disabled");
+  Serial.printf("Hardware: 4 MOSFET channels (36 LEDs total), Demo mode: %s\n", demoMode ? "enabled" : "disabled");
   Serial.println("ESP32-C3 SuperMini Afterburner Ready!");
   
   // Initial LED test
