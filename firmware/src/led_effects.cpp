@@ -126,33 +126,82 @@ void LEDEffects::renderCoreEffect(const AfterburnerSettings& settings, float thr
   
   // Render each LED (both rings: total = numLeds * 2)
   uint16_t totalLeds = numLeds * 2;
-  for (uint16_t i = 0; i < totalLeds; i++) {
-    bool ring2 = isRing2(i);
+  
+  // Special handling for Mode 0 (Linear mode): Random flickering LEDs
+  if (settings.mode == 0) {
+    // Calculate target percentage of LEDs that should be lit (with minimum at idle)
+    float litPercentage = throttle;
+    litPercentage = constrain(litPercentage, 0.20f, 1.0f);  // 20% minimum at idle, up to 100%
     
-    // Calculate breathing effect with phase offset for ring 2 (enhanced visibility)
-    uint8_t currentBrightness = baseBrightness;
-    if (settings.mode == 1 || settings.mode == 2) {
-      // Use speedMs to control breathing frequency
-      float breathingSpeed = 1000.0f / (float)settings.speedMs;
-      // Add 180° phase offset for ring 2 to create contrasting effect
-      float phaseOffset = ring2 ? M_PI : 0.0f;
-      // Enhanced breathing effect: 0.7 to 1.0 range (30% variation for better visibility)
-      float breathing = 0.7f + 0.3f * sin(millis() * breathingSpeed + phaseOffset);
-      currentBrightness = (uint8_t)(baseBrightness * breathing);
+    // Calculate threshold for noise-based selection
+    // Lower threshold = more LEDs lit, higher threshold = fewer LEDs lit
+    // We want: at 0.20 throttle -> ~20% lit, at 1.0 throttle -> ~100% lit
+    uint8_t noiseThreshold = (uint8_t)(255 - (255 * litPercentage));
+    
+    // Calculate flicker speed based on speedMs setting (faster flickering)
+    // Use multiplier to speed up the animation - faster speedMs = faster flicker
+    float flickerSpeedMultiplier = 5.0f;  // Speed multiplier for faster flickering
+    float flickerSpeed = (1000.0f / (float)settings.speedMs) * flickerSpeedMultiplier;
+    uint32_t timeOffset = (uint32_t)(millis() * flickerSpeed);
+    
+    for (uint16_t i = 0; i < totalLeds; i++) {
+      bool ring2 = isRing2(i);
+      uint16_t localIndex = getRingLocalIndex(i);
+      
+      // Generate independent noise for this LED (time-based, so it flickers)
+      // Use different seed offsets for each ring to ensure independence
+      uint32_t seedOffset = ring2 ? 10000 : 0;
+      uint8_t noise = inoise8((localIndex * 37 + seedOffset), timeOffset + (localIndex * 13));
+      
+      // If noise exceeds threshold, LED is lit
+      if (noise > noiseThreshold) {
+        // For color: use raw throttle (not eased) to ensure startColor at idle
+        // At throttle = 0, we want startColor; at throttle = 1, we want endColor
+        CRGB color = lerpColor(startColor, endColor, throttle);
+        
+        // Apply base brightness (full brightness for lit LEDs)
+        color.nscale8(baseBrightness);
+        
+        // Add flicker effect for extra realism
+        addFlicker(i, 35, settings);
+        
+        // Set the LED
+        leds[i] = color;
+      } else {
+        // LED is off
+        leds[i] = CRGB::Black;
+      }
     }
-    
-    // Interpolate color based on eased throttle (SAME for both rings)
-    // This creates the transition from 0% to 100% throttle
-    CRGB color = lerpColor(startColor, endColor, easedThrottle);
-    
-    // Apply breathing brightness effect (still visible during day)
-    color.nscale8(currentBrightness);
-    
-    // Add flicker effect with increased intensity for better visibility (will have phase offset in addFlicker)
-    addFlicker(i, 35, settings);  // Increased from 20 to 35 for better visibility
-    
-    // Set the LED
-    leds[i] = color;
+  } else {
+    // Mode 1 (Ease) and Mode 2 (Pulse): Original behavior
+    for (uint16_t i = 0; i < totalLeds; i++) {
+      bool ring2 = isRing2(i);
+      
+      // Calculate breathing effect with phase offset for ring 2 (enhanced visibility)
+      uint8_t currentBrightness = baseBrightness;
+      if (settings.mode == 1 || settings.mode == 2) {
+        // Use speedMs to control breathing frequency (Ease and Pulse modes)
+        float breathingSpeed = 1000.0f / (float)settings.speedMs;
+        // Add 180° phase offset for ring 2 to create contrasting effect
+        float phaseOffset = ring2 ? M_PI : 0.0f;
+        // Enhanced breathing effect: 0.7 to 1.0 range (30% variation for better visibility)
+        float breathing = 0.7f + 0.3f * sin(millis() * breathingSpeed + phaseOffset);
+        currentBrightness = (uint8_t)(baseBrightness * breathing);
+      }
+      
+      // Interpolate color based on eased throttle (SAME for both rings)
+      // This creates the transition from 0% to 100% throttle
+      CRGB color = lerpColor(startColor, endColor, easedThrottle);
+      
+      // Apply breathing brightness effect (for Ease and Pulse modes)
+      color.nscale8(currentBrightness);
+      
+      // Add flicker effect with increased intensity for better visibility (will have phase offset in addFlicker)
+      addFlicker(i, 35, settings);  // Increased from 20 to 35 for better visibility
+      
+      // Set the LED
+      leds[i] = color;
+    }
   }
 }
 
