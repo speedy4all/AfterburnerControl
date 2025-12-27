@@ -89,9 +89,10 @@ void setup() {
   // Set demo mode if enabled
   throttleReader.setDemoMode(demoMode);
   
-  // Get LED count from settings instead of hardcoding
+  // Get LED count from settings (per ring) and initialize for dual turbines
+  // Total LEDs = numLeds * 2 (one ring continues the first)
   uint16_t numLeds = settingsManager.getSettings().numLeds;
-  ledEffects.begin(numLeds);
+  ledEffects.begin(numLeds * 2);  // Dual turbine support: 2 rings
   
   try {
     bleService.begin();

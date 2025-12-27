@@ -9,7 +9,7 @@
 class LEDEffects {
 private:
   CRGB* leds;
-  uint16_t numLeds;
+  uint16_t numLeds;  // LEDs per ring (total LEDs = numLeds * 2 for dual turbines)
   unsigned long lastUpdate;
   uint8_t noiseOffset;
   
@@ -20,12 +20,17 @@ private:
 public:
   LEDEffects();
   ~LEDEffects();
-  void begin(uint16_t ledCount);
-  void update(uint16_t newLedCount);
+  void begin(uint16_t totalLedCount);  // Total LEDs (numLeds * 2 for dual turbines)
+  void update(uint16_t newTotalLedCount);
   void render(const AfterburnerSettings& settings, float throttle);
   void setBrightness(uint8_t brightness);
   
 private:
+  // Helper methods for dual-ring support
+  bool isRing2(uint16_t ledIndex) const;
+  uint16_t getRingLocalIndex(uint16_t ledIndex) const;
+  float getRingPosition(uint16_t ledIndex) const;
+  
   void renderCoreEffect(const AfterburnerSettings& settings, float throttle);
   void renderAfterburnerOverlay(const AfterburnerSettings& settings, float throttle);
   float getEasedThrottle(float throttle, uint8_t mode);

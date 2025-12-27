@@ -48,23 +48,27 @@ LEDEffects::~LEDEffects() {
   }
 }
 
-void LEDEffects::begin(uint16_t ledCount) {
+void LEDEffects::begin(uint16_t totalLedCount) {
   if (leds) {
     delete[] leds;
   }
   
-  numLeds = ledCount;
-  leds = new CRGB[numLeds];
+  // Store LEDs per ring (total should be numLeds * 2 for dual turbines)
+  numLeds = totalLedCount / 2;
+  uint16_t actualTotalLeds = numLeds * 2;  // Ensure we use exactly 2 rings
   
-  FastLED.addLeds<WS2812B, LED_STRIP_PIN, GRB>(leds, numLeds);
+  leds = new CRGB[actualTotalLeds];
+  
+  FastLED.addLeds<WS2812B, LED_STRIP_PIN, GRB>(leds, actualTotalLeds);
   FastLED.setBrightness(200);
   FastLED.clear();
   FastLED.show();
 }
 
-void LEDEffects::update(uint16_t newLedCount) {
-  if (newLedCount != numLeds) {
-    begin(newLedCount);
+void LEDEffects::update(uint16_t newTotalLedCount) {
+  uint16_t newNumLeds = newTotalLedCount / 2;
+  if (newNumLeds != numLeds) {
+    begin(newTotalLedCount);
   }
 }
 
@@ -92,6 +96,22 @@ void LEDEffects::setBrightness(uint8_t brightness) {
   FastLED.setBrightness(brightness);
 }
 
+// Helper methods for dual-ring support
+bool LEDEffects::isRing2(uint16_t ledIndex) const {
+  return ledIndex >= numLeds;
+}
+
+uint16_t LEDEffects::getRingLocalIndex(uint16_t ledIndex) const {
+  return isRing2(ledIndex) ? (ledIndex - numLeds) : ledIndex;
+}
+
+float LEDEffects::getRingPosition(uint16_t ledIndex) const {
+  uint16_t localIndex = getRingLocalIndex(ledIndex);
+  float position = (float)localIndex / numLeds;
+  // Reverse spatial position for ring 2 to create contrasting pattern
+  return isRing2(ledIndex) ? (1.0f - position) : position;
+}
+
 void LEDEffects::renderCoreEffect(const AfterburnerSettings& settings, float throttle) {
   // Get eased throttle value based on mode
   float easedThrottle = getEasedThrottle(throttle, settings.mode);
@@ -100,27 +120,36 @@ void LEDEffects::renderCoreEffect(const AfterburnerSettings& settings, float thr
   CRGB startColor = CRGB(settings.startColor[0], settings.startColor[1], settings.startColor[2]);
   CRGB endColor = CRGB(settings.endColor[0], settings.endColor[1], settings.endColor[2]);
   
-  // Calculate base brightness proportional to throttle
-  uint8_t baseBrightness = 30 + (uint8_t)(200 * throttle);
+  // Use constant brightness from settings (full brightness for color rendering)
+  // FastLED.setBrightness(settings.brightness) handles overall brightness control
+  uint8_t baseBrightness = 255;  // Full brightness - constant, not throttle-dependent
   
-  // Add breathing effect based on speed setting (for Ease and Pulse modes)
-  if (settings.mode == 1 || settings.mode == 2) {
-    // Use speedMs to control breathing frequency
-    float breathingSpeed = 1000.0f / (float)settings.speedMs;
-    float breathing = 0.8f + 0.2f * sin(millis() * breathingSpeed);
-    baseBrightness = (uint8_t)(baseBrightness * breathing);
-  }
-  
-  // Render each LED
-  for (uint16_t i = 0; i < numLeds; i++) {
-    // Interpolate color based on eased throttle
+  // Render each LED (both rings: total = numLeds * 2)
+  uint16_t totalLeds = numLeds * 2;
+  for (uint16_t i = 0; i < totalLeds; i++) {
+    bool ring2 = isRing2(i);
+    
+    // Calculate breathing effect with phase offset for ring 2 (enhanced visibility)
+    uint8_t currentBrightness = baseBrightness;
+    if (settings.mode == 1 || settings.mode == 2) {
+      // Use speedMs to control breathing frequency
+      float breathingSpeed = 1000.0f / (float)settings.speedMs;
+      // Add 180° phase offset for ring 2 to create contrasting effect
+      float phaseOffset = ring2 ? M_PI : 0.0f;
+      // Enhanced breathing effect: 0.7 to 1.0 range (30% variation for better visibility)
+      float breathing = 0.7f + 0.3f * sin(millis() * breathingSpeed + phaseOffset);
+      currentBrightness = (uint8_t)(baseBrightness * breathing);
+    }
+    
+    // Interpolate color based on eased throttle (SAME for both rings)
+    // This creates the transition from 0% to 100% throttle
     CRGB color = lerpColor(startColor, endColor, easedThrottle);
     
-    // Apply base brightness
-    color.nscale8(baseBrightness);
+    // Apply breathing brightness effect (still visible during day)
+    color.nscale8(currentBrightness);
     
-    // Add flicker effect
-    addFlicker(i, 20, settings);
+    // Add flicker effect with increased intensity for better visibility (will have phase offset in addFlicker)
+    addFlicker(i, 35, settings);  // Increased from 20 to 35 for better visibility
     
     // Set the LED
     leds[i] = color;
@@ -139,33 +168,38 @@ void LEDEffects::renderAfterburnerOverlay(const AfterburnerSettings& settings, f
   float abIntensity = (throttle - abThreshold) / (1.0f - abThreshold);
   abIntensity = constrain(abIntensity, 0.0f, 1.0f);
   
-  // Apply pulse modulation for Pulse mode
-  if (settings.mode == 2) {
-    // Use speedMs to control pulse frequency (faster speed = faster pulse)
-    // Convert speedMs to frequency: 100ms = fast pulse, 5000ms = slow pulse
-    float pulseFrequency = 1000.0f / (float)settings.speedMs;
-    float pulse = 0.6f + 0.4f * sin(millis() * pulseFrequency);
-    abIntensity *= pulse;
-  }
-  
-  // Render afterburner effect
-  for (uint16_t i = 0; i < numLeds; i++) {
-    // Calculate spatial profile (stronger in center)
-    float position = (float)i / numLeds;
+  // Render afterburner effect for both rings
+  uint16_t totalLeds = numLeds * 2;
+  for (uint16_t i = 0; i < totalLeds; i++) {
+    bool ring2 = isRing2(i);
+    float position = getRingPosition(i);  // Already reversed for ring 2
+    
+    // Calculate spatial profile (stronger in center for ring 1, reversed for ring 2)
     float spatialProfile = 0.65f + 0.35f * sin(2.0f * M_PI * position);
     
-    // Blend afterburner colors based on throttle
+    // Apply pulse modulation for Pulse mode with phase offset for ring 2
+    float currentAbIntensity = abIntensity;
+    if (settings.mode == 2) {
+      // Use speedMs to control pulse frequency (faster speed = faster pulse)
+      float pulseFrequency = 1000.0f / (float)settings.speedMs;
+      // Add 180° phase offset for ring 2 to create contrasting pulse
+      float phaseOffset = ring2 ? M_PI : 0.0f;
+      float pulse = 0.6f + 0.4f * sin(millis() * pulseFrequency + phaseOffset);
+      currentAbIntensity *= pulse;
+    }
+    
+    // Blend afterburner colors based on throttle (SAME for both rings)
     CRGB abColor = lerpColor(abCoreColor1, abCoreColor2, throttle);
     
     // Scale by intensity and spatial profile
-    uint8_t abBrightness = (uint8_t)(255 * abIntensity * spatialProfile);
+    uint8_t abBrightness = (uint8_t)(255 * currentAbIntensity * spatialProfile);
     abColor.nscale8(abBrightness);
     
     // Add to existing LED color
     leds[i] += abColor;
   }
   
-  // Add sparkles when afterburner is strong
+  // Add sparkles when afterburner is strong (independent per ring)
   if (abIntensity > 0.4f) {
     addSparkles(abIntensity, settings);
   }
@@ -185,27 +219,37 @@ float LEDEffects::getEasedThrottle(float throttle, uint8_t mode) {
 }
 
 void LEDEffects::addFlicker(uint16_t ledIndex, uint8_t intensity, const AfterburnerSettings& settings) {
+  bool ring2 = isRing2(ledIndex);
+  uint16_t localIndex = getRingLocalIndex(ledIndex);
+  
   // Generate noise-based flicker using FastLED noise functions
   // Use speedMs to control flicker speed (faster speed = faster flicker)
   float flickerSpeed = 1000.0f / (float)settings.speedMs;
-  uint8_t noise = inoise8(ledIndex * 12, (millis() * flickerSpeed + ledIndex * 7) * 8 + noiseOffset);
   
-  // Map noise to flicker range
+  // Add phase offset for ring 2 to create independent flicker pattern
+  uint32_t timeOffset = ring2 ? 1000 : 0;  // Different time offset for ring 2
+  uint8_t noise = inoise8(localIndex * 12, (millis() * flickerSpeed + localIndex * 7) * 8 + noiseOffset + timeOffset);
+  
+  // Map noise to flicker range (enhanced for better visibility during day)
   int8_t flicker = map(noise, 0, 255, -intensity, intensity);
   
-  // Apply flicker to LED
+  // Apply flicker to LED (additive for better visibility)
   leds[ledIndex].addToRGB(flicker);
 }
 
 void LEDEffects::addSparkles(float abIntensity, const AfterburnerSettings& settings) {
-  // Add random white sparkles
+  // Add random white sparkles with independent patterns for each ring
   // Use speedMs to control sparkle frequency (faster speed = more sparkles)
   float sparkleFrequency = 1000.0f / (float)settings.speedMs;
   uint16_t sparkleChance = (uint16_t)(abIntensity * 50 * sparkleFrequency);
   
-  for (uint16_t i = 0; i < numLeds; i++) {
-    if (random(1000) < sparkleChance) {
-      uint8_t sparkleIntensity = random(50, 150);
+  uint16_t totalLeds = numLeds * 2;
+  for (uint16_t i = 0; i < totalLeds; i++) {
+    // Use LED index and ring offset to create independent sparkle patterns
+    // Each ring gets different sparkle timing based on its index
+    uint32_t sparkleSeed = (millis() * sparkleFrequency) + (i * 17) + (isRing2(i) ? 5000 : 0);
+    if ((sparkleSeed % 1000) < sparkleChance) {
+      uint8_t sparkleIntensity = 50 + (sparkleSeed % 100);  // 50-150 range
       leds[i] += CRGB(sparkleIntensity, sparkleIntensity, sparkleIntensity);
     }
   }
